@@ -34,6 +34,13 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      <div className="login-brand">
+        <span className="login-brand-text">
+          <span className="login-brand-name">Transfere</span>
+          <span className="login-brand-pro">Pro</span>
+          <span className="login-brand-description">de Alassane</span>
+        </span>
+      </div>
       <div className="login-card">
         <h1>Connexion</h1>
         <p className="login-subtitle">Accédez à votre espace agent</p>
