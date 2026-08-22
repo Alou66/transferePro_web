@@ -1,0 +1,219 @@
+.transfer-details-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.transfer-details-card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.transfer-details-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 1rem;
+}
+
+.transfer-details-header h1 {
+  font-size: 1.25rem;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+}
+
+.transfer-details-reference {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.transfer-details-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.transfer-details-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.transfer-details-section h2 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.25rem;
+}
+
+.transfer-details-section p {
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.transfer-details-amount {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.transfer-details-fee {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.transfer-details-total {
+  font-size: 0.875rem;
+  color: #334155;
+  margin-top: 0.25rem;
+}
+
+.transfer-details-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 1rem;
+}
+
+.transfer-details-button {
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+  text-align: center;
+}
+
+.transfer-details-button.primary {
+  background: #2563eb;
+  color: white;
+}
+
+.transfer-details-button.primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.transfer-details-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.transfer-details-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.transfer-details-verified-text {
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.transfer-details-paid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.transfer-details-cancelled-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.transfer-details-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #f8fafc;
+}
+
+.transfer-details-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.transfer-details-loading p {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.transfer-details-error {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #f8fafc;
+  padding: 2rem;
+  text-align: center;
+}
+
+.transfer-details-error p {
+  color: #dc2626;
+  font-size: 0.875rem;
+  max-width: 320px;
+}
+
+.transfer-details-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.transfer-details-link:hover {
+  text-decoration: underline;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 640px) {
+  .transfer-details-card {
+    padding: 2rem;
+  }
+
+  .transfer-details-header h1 {
+    font-size: 1.5rem;
+  }
+}

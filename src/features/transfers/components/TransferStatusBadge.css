@@ -1,0 +1,29 @@
+.transfer-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.transfer-status-badge--created {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.transfer-status-badge--ready_for_payment {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.transfer-status-badge--paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.transfer-status-badge--cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
