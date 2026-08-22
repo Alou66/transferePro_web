@@ -7,6 +7,7 @@ import { TransferStatus } from '../../../types/index'
 import TransferStatusBadge from '../components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
+import BackButton from '../../../components/common/BackButton'
 import './TransferDetailsPage.css'
 
 export default function TransferDetailsPage() {
@@ -18,6 +19,18 @@ export default function TransferDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paying, setPaying] = useState(false)
+  const [isWithdrawalCodeVisible, setIsWithdrawalCodeVisible] = useState(false)
+
+  useEffect(() => {
+    if (showPaymentModal) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [showPaymentModal])
 
   useEffect(() => {
     async function load() {
@@ -31,7 +44,12 @@ export default function TransferDetailsPage() {
         const data = await transferService.getById(transferId)
         setTransfer(data)
 
-        if (data.destinationAgentId !== user?.id) {
+        const isAuthorized =
+          data.originAgentId === user?.id ||
+          data.destinationAgentId === user?.id ||
+          data.paidByAgentId === user?.id
+
+        if (!isAuthorized) {
           setError("Vous n'êtes pas autorisé à consulter ce transfert.")
         }
       } catch {
@@ -45,7 +63,8 @@ export default function TransferDetailsPage() {
   }, [transferId, user?.id])
 
   const handleVerifyCode = () => {
-    if (!transferId) return
+    if (!transferId || !transfer) return
+    if (transfer.destinationAgentId !== user?.id) return
     navigate(`/agent/transfers/${transferId}/verify`)
   }
 
@@ -93,8 +112,15 @@ export default function TransferDetailsPage() {
   const isPaid = transfer.status === TransferStatus.PAID
   const isCancelled = transfer.status === TransferStatus.CANCELLED
 
+  const isDestinationAgent = transfer.destinationAgentId === user?.id
+  const isOriginAgent = transfer.originAgentId === user?.id
+  const canVerifyCode = isCreated && isDestinationAgent
+  const canPay = isReadyForPayment && isDestinationAgent
+  const canViewWithdrawalCode = isOriginAgent
+
   return (
     <div className="transfer-details-page">
+      <BackButton to="/agent/transfers/incoming" />
       <div className="transfer-details-card">
         <div className="transfer-details-header">
           <div>
@@ -143,16 +169,37 @@ export default function TransferDetailsPage() {
               <p><strong>Date de paiement :</strong> {formatDate(transfer.paidAt)}</p>
             </div>
           )}
+
+          {canViewWithdrawalCode && (
+            <div className="transfer-details-section">
+              <h2>Code secret de retrait</h2>
+              <div className="withdrawal-code-container">
+                <span className="withdrawal-code-value">
+                  {isWithdrawalCodeVisible ? transfer.withdrawalCode : '••••'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsWithdrawalCodeVisible((prev) => !prev)}
+                  className="withdrawal-code-toggle"
+                >
+                  {isWithdrawalCodeVisible ? 'Masquer le code' : 'Afficher le code'}
+                </button>
+              </div>
+              <p className="withdrawal-code-hint">
+                Communiquez ce code uniquement après avoir vérifié l'identité du client.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="transfer-details-actions">
-          {isCreated && (
+          {canVerifyCode && (
             <button onClick={handleVerifyCode} className="transfer-details-button primary">
               Vérifier le code de retrait
             </button>
           )}
 
-          {isReadyForPayment && (
+          {canPay && (
             <>
               <span className="transfer-details-verified-badge">✓ Code vérifié</span>
               <span className="transfer-details-verified-text">Le bénéficiaire peut recevoir son argent.</span>
@@ -180,9 +227,14 @@ export default function TransferDetailsPage() {
       </div>
 
       {showPaymentModal && (
-        <div className="payment-modal-overlay">
+        <div
+          className="payment-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-modal-title"
+        >
           <div className="payment-modal">
-            <h2>Confirmer le paiement</h2>
+            <h2 id="payment-modal-title">Confirmer le paiement</h2>
             <p className="payment-modal-amount">
               Vous êtes sur le point de remettre :
               <strong>{formatCurrency(transfer.amount)}</strong>
@@ -190,7 +242,7 @@ export default function TransferDetailsPage() {
             <p className="payment-modal-recipient">
               à : <strong>{transfer.receiverName}</strong>
             </p>
-            <p className="payment-modal-warning">Cette opération est définitive.</p>
+            <p className="payment-modal-warning">⚠ Cette opération est définitive.</p>
             <div className="payment-modal-actions">
               <button
                 onClick={() => setShowPaymentModal(false)}

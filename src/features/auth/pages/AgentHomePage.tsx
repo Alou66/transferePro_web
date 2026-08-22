@@ -12,6 +12,7 @@ interface DashboardStats {
   incoming: number
   paid: number
   totalSent: number
+  totalCollected: number
 }
 
 interface RecentActivity {
@@ -32,6 +33,7 @@ export default function AgentHomePage() {
     incoming: 0,
     paid: 0,
     totalSent: 0,
+    totalCollected: 0,
   })
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,6 +54,9 @@ export default function AgentHomePage() {
       ])
 
       const totalSent = created.reduce((sum, t) => sum + t.amount, 0)
+      const totalCollected = incoming
+        .filter((t) => t.status === TransferStatus.PAID)
+        .reduce((sum, t) => sum + t.amount, 0)
 
       setStats({
         created: created.length,
@@ -60,6 +65,7 @@ export default function AgentHomePage() {
         ).length,
         paid: paid.length,
         totalSent,
+        totalCollected,
       })
 
       const activity: RecentActivity[] = all.slice(0, 5).map((transfer) => {
@@ -141,6 +147,14 @@ export default function AgentHomePage() {
         <div className="stat-card">
           <span className="stat-value">{formatCurrency(stats.totalSent)}</span>
           <span className="stat-label">Montant total envoyé</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-value">{formatCurrency(stats.totalCollected)}</span>
+          <span className="stat-label">Montant total encaissé</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-value">{formatCurrency(stats.totalCollected - stats.totalSent)}</span>
+          <span className="stat-label">Différence encaissé / envoyé</span>
         </div>
       </div>
 

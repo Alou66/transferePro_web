@@ -17,10 +17,13 @@ export enum TransferStatus {
   CANCELLED = 'CANCELLED',
 }
 
-export enum City {
-  DAKAR = 'Dakar',
-  ZIGUINCHOR = 'Ziguinchor',
-  CONAKRY = 'Conakry',
+export type City = string
+
+export interface CityModel {
+  id: string
+  name: string
+  isActive: boolean
+  createdAt: string
 }
 
 export interface Agent {

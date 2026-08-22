@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../features/auth/services/authService'
-import { City } from '../types/index'
+import { cityService } from '../features/cities/services/cityService'
+import type { CityModel } from '../features/cities/services/cityService'
+import BackButton from '../components/common/BackButton'
 import './RegisterPage.css'
-
-const CITIES = [City.DAKAR, City.ZIGUINCHOR, City.CONAKRY]
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -14,10 +14,30 @@ export default function RegisterPage() {
     phone: '',
     email: '',
     password: '',
-    city: City.DAKAR,
+    city: '',
   })
+  const [cities, setCities] = useState<CityModel[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [citiesLoading, setCitiesLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadCities() {
+      try {
+        const data = await cityService.getAvailableForRegistration()
+        setCities(data)
+        if (data.length > 0) {
+          setForm((prev) => ({ ...prev, city: data[0].name }))
+        }
+      } catch {
+        setError('Impossible de charger les villes disponibles.')
+      } finally {
+        setCitiesLoading(false)
+      }
+    }
+
+    loadCities()
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -42,6 +62,7 @@ export default function RegisterPage() {
   return (
     <div className="register-page">
       <div className="register-card">
+        <BackButton to="/login" />
         <h1>Inscription agent</h1>
         <p className="register-subtitle">Créez votre compte pour accéder à la plateforme</p>
 
@@ -111,22 +132,35 @@ export default function RegisterPage() {
 
           <div className="form-group">
             <label htmlFor="city">Ville</label>
-            <select
-              id="city"
-              name="city"
-              value={form.city}
-              onChange={handleChange}
-              required
-            >
-              {CITIES.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
+            {citiesLoading ? (
+              <p className="register-cities-loading">Chargement des villes...</p>
+            ) : cities.length === 0 ? (
+              <p className="register-cities-empty">
+                Aucune ville n'est actuellement disponible pour l'inscription d'un nouvel agent.
+                Veuillez réessayer plus tard.
+              </p>
+            ) : (
+              <select
+                id="city"
+                name="city"
+                value={form.city}
+                onChange={handleChange}
+                required
+              >
+                {cities.map((city) => (
+                  <option key={city.id} value={city.name}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
-          <button type="submit" disabled={loading} className="register-button">
+          <button
+            type="submit"
+            disabled={loading || citiesLoading || cities.length === 0}
+            className="register-button"
+          >
             {loading ? 'Inscription en cours...' : "S'inscrire"}
           </button>
         </form>

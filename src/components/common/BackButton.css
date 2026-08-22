@@ -1,0 +1,35 @@
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-slate-600);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  min-height: 44px;
+  margin-bottom: var(--space-4);
+}
+
+.back-button:hover {
+  background: var(--color-slate-100);
+  color: var(--color-dark);
+}
+
+.back-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.back-button-icon {
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.back-button-label {
+  line-height: 1.2;
+}

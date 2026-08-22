@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom'
+import BackButton from '../components/common/BackButton'
 import './PendingValidationPage.css'
 
 export default function PendingValidationPage() {
@@ -8,6 +9,7 @@ export default function PendingValidationPage() {
   return (
     <div className="pending-page">
       <div className="pending-card">
+        <BackButton to="/login" />
         <div className="pending-icon">⏳</div>
         <h1>Inscription en cours de validation</h1>
         <p className="pending-message">

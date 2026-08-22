@@ -3,49 +3,53 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
-  background: #f8fafc;
+  padding: var(--space-6) var(--space-4);
+  background: var(--color-slate-50);
 }
 
 .pending-card {
   background: white;
-  padding: 2.5rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   text-align: center;
   max-width: 480px;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .pending-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: var(--text-4xl);
+  margin-bottom: var(--space-2);
 }
 
 .pending-card h1 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-  color: #0f172a;
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-4);
+  color: var(--color-dark);
+  line-height: 1.2;
 }
 
 .pending-message {
-  color: #475569;
-  font-size: 0.875rem;
+  color: var(--color-slate-600);
+  font-size: var(--text-base);
   line-height: 1.6;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
 .pending-info {
-  background: #f1f5f9;
-  padding: 1rem;
-  border-radius: 0.5rem;
+  background: var(--color-slate-100);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
   text-align: left;
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
+  margin-bottom: var(--space-5);
+  font-size: var(--text-base);
 }
 
 .pending-info p {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
 .pending-info p:last-child {
@@ -53,6 +57,20 @@
 }
 
 .pending-submessage {
-  color: #64748b;
-  font-size: 0.875rem;
+  color: var(--color-slate-500);
+  font-size: var(--text-base);
+}
+
+@media (min-width: 640px) {
+  .pending-page {
+    padding: var(--space-8) var(--space-6);
+  }
+
+  .pending-card {
+    padding: var(--space-8);
+  }
+
+  .pending-card h1 {
+    font-size: var(--text-4xl);
+  }
 }

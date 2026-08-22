@@ -2,39 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { transferService } from '../services/transferService'
-import { agentService } from '../../agents/services/agentService'
-import { TransferStatus } from '../../../types/index'
+import { TransferStatus, type Transfer } from '../../../types/index'
 import TransferStatusBadge from '../components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
 import './IncomingTransfersPage.css'
 
-interface OriginAgent {
-  id: string
-  firstName: string
-  lastName: string
-  city: string
-}
-
-interface IncomingTransfer {
-  id: string
-  reference: string
-  status: TransferStatus
-  originCity: string
-  originAgentId: string
-  senderName: string
-  senderPhone: string
-  receiverName: string
-  receiverPhone: string
-  amount: number
-  createdAt: string
-}
-
 export default function IncomingTransfersPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [transfers, setTransfers] = useState<IncomingTransfer[]>([])
-  const [originAgents, setOriginAgents] = useState<Map<string, OriginAgent>>(new Map())
+  const [transfers, setTransfers] = useState<Transfer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -56,23 +33,6 @@ export default function IncomingTransfersPage() {
         )
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
-      const uniqueOriginIds = Array.from(new Set(filtered.map((t) => t.originAgentId)))
-
-      const agents = await Promise.all(
-        uniqueOriginIds.map((id) => agentService.getById(id)),
-      )
-
-      const agentMap = new Map<string, OriginAgent>()
-      for (const agent of agents) {
-        agentMap.set(agent.id, {
-          id: agent.id,
-          firstName: agent.firstName,
-          lastName: agent.lastName,
-          city: agent.city,
-        })
-      }
-
-      setOriginAgents(agentMap)
       setTransfers(filtered)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger les transferts entrants.')
@@ -153,67 +113,54 @@ export default function IncomingTransfersPage() {
         </div>
       ) : (
         <div className="incoming-list">
-          {transfers.map((transfer) => {
-            const originAgent = originAgents.get(transfer.originAgentId)
-            return (
-              <button
-                key={transfer.id}
-                onClick={() => navigate(`/agent/transfers/${transfer.id}`)}
-                className="incoming-card-button"
-              >
-                <div className="incoming-card">
-                  <div className="incoming-card-header">
-                    <span className="incoming-reference">{transfer.reference}</span>
-                    <TransferStatusBadge status={transfer.status} />
-                  </div>
+          {transfers.map((transfer) => (
+            <button
+              key={transfer.id}
+              onClick={() => navigate(`/agent/transfers/${transfer.id}`)}
+              className="incoming-card-button"
+              type="button"
+            >
+              <div className="incoming-card">
+                <div className="incoming-card-header">
+                  <span className="incoming-reference">{transfer.reference}</span>
+                  <TransferStatusBadge status={transfer.status} />
+                </div>
 
-                  <div className="incoming-card-body">
-                    <div className="incoming-section">
-                      <span className="incoming-section-label">Origine</span>
-                      <p className="incoming-section-value">
-                        {originAgent ? (
-                          <>
-                            <strong>{originAgent.firstName} {originAgent.lastName}</strong>
-                            <span className="incoming-agent-city">{originAgent.city}</span>
-                          </>
-                        ) : (
-                          <span className="incoming-unknown-agent">Agent inconnu</span>
-                        )}
-                      </p>
+                <div className="incoming-card-body">
+                  <p className="incoming-route">
+                    <span className="incoming-name">{transfer.senderName}</span>
+                    <span className="incoming-arrow">→</span>
+                    <span className="incoming-name">{transfer.receiverName}</span>
+                  </p>
+
+                  <p className="incoming-traject">
+                    <span className="incoming-traject-icon">📍</span>
+                    <span className="incoming-traject-text">
+                      {transfer.originCity} → {transfer.destinationCity}
+                    </span>
+                  </p>
+
+                  <div className="incoming-card-footer">
+                    <div className="incoming-amount">
+                      <span className="incoming-amount-label">Montant</span>
+                      <span className="incoming-amount-value">
+                        {formatCurrency(transfer.amount)}
+                      </span>
                     </div>
-
-                    <div className="incoming-section">
-                      <span className="incoming-section-label">Expéditeur</span>
-                      <p className="incoming-section-value">
-                        <strong>{transfer.senderName}</strong>
-                        <span>{transfer.senderPhone}</span>
-                      </p>
-                    </div>
-
-                    <div className="incoming-section">
-                      <span className="incoming-section-label">Bénéficiaire</span>
-                      <p className="incoming-section-value">
-                        <strong>{transfer.receiverName}</strong>
-                        <span>{transfer.receiverPhone}</span>
-                      </p>
-                    </div>
-
-                    <div className="incoming-card-footer">
-                      <div className="incoming-amount">
-                        <span className="incoming-amount-label">Montant</span>
-                        <span className="incoming-amount-value">
-                          {formatCurrency(transfer.amount)}
-                        </span>
-                      </div>
-                      <div className="incoming-date">
-                        {formatDate(transfer.createdAt)}
-                      </div>
+                    <div className="incoming-date">
+                      {formatDate(transfer.createdAt)}
                     </div>
                   </div>
                 </div>
-              </button>
-            )
-          })}
+
+                <div className="incoming-card-action">
+                  <span className="incoming-details-link">
+                    Voir les détails <span className="incoming-details-arrow">→</span>
+                  </span>
+                </div>
+              </div>
+            </button>
+          ))}
         </div>
       )}
     </div>

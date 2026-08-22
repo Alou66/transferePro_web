@@ -1,4 +1,30 @@
 {
+  "cities": [
+    {
+      "id": "city-1",
+      "name": "Dakar",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "city-2",
+      "name": "Ziguinchor",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "city-3",
+      "name": "Conakry",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Diountou",
+      "isActive": true,
+      "createdAt": "2026-08-22T20:22:40.872Z",
+      "id": "9ecivUF92Nw"
+    }
+  ],
   "agents": [
     {
       "id": "agent-1",
@@ -11,15 +37,15 @@
       "role": "ADMIN",
       "status": "ACTIVE",
       "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2026-08-22T16:29:42.864Z"
     },
     {
       "id": "agent-2",
-      "firstName": "Fatou",
-      "lastName": "Sow",
+      "firstName": "Rouguiatou",
+      "lastName": "diallo",
       "phone": "+221781234567",
-      "email": "fatou.sow@example.com",
-      "password": "password123",
+      "email": "rouguiatou.diallo@gmail.com",
+      "password": "diallo123",
       "city": "Dakar",
       "role": "AGENT",
       "status": "ACTIVE",
@@ -28,11 +54,11 @@
     },
     {
       "id": "agent-3",
-      "firstName": "Ousmane",
-      "lastName": "Ba",
+      "firstName": "Alassane",
+      "lastName": "Diallo",
       "phone": "+221791234567",
-      "email": "ousmane.ba@example.com",
-      "password": "password123",
+      "email": "alassane.diallo@gmail.com",
+      "password": "diallo123",
       "city": "Ziguinchor",
       "role": "AGENT",
       "status": "ACTIVE",
@@ -44,8 +70,8 @@
       "firstName": "Mariama",
       "lastName": "Camara",
       "phone": "+224621234567",
-      "email": "mariama.camara@example.com",
-      "password": "password123",
+      "email": "mariama.camara@gmail.com",
+      "password": "camara123",
       "city": "Conakry",
       "role": "AGENT",
       "status": "ACTIVE",
@@ -53,30 +79,17 @@
       "updatedAt": "2024-01-04T00:00:00.000Z"
     },
     {
-      "id": "agent-5",
-      "firstName": "Ibrahim",
-      "lastName": "Koné",
-      "phone": "+224631234567",
-      "email": "ibrahim.kone@example.com",
-      "password": "password123",
-      "city": "Conakry",
-      "role": "AGENT",
-      "status": "PENDING",
-      "createdAt": "2024-01-05T00:00:00.000Z",
-      "updatedAt": "2024-01-05T00:00:00.000Z"
-    },
-    {
-      "id": "agent-6",
-      "firstName": "Aissatou",
+      "firstName": "mamadou",
       "lastName": "Diallo",
-      "phone": "+221701234568",
-      "email": "aissatou.diallo@example.com",
-      "password": "password123",
-      "city": "Dakar",
+      "phone": "778021528",
+      "email": "mamadou@example.com",
+      "password": "mamadou123",
+      "city": "Diountou",
       "role": "AGENT",
-      "status": "BLOCKED",
-      "createdAt": "2024-01-06T00:00:00.000Z",
-      "updatedAt": "2024-01-06T00:00:00.000Z"
+      "status": "ACTIVE",
+      "createdAt": "2026-08-22T20:28:08.218Z",
+      "updatedAt": "2026-08-22T20:48:23.397Z",
+      "id": "kGXG3YkhM_I"
     }
   ],
   "transfers": [
@@ -116,11 +129,11 @@
       "fee": 5000,
       "totalAmount": 255000,
       "withdrawalCode": "5678",
-      "status": "READY_FOR_PAYMENT",
+      "status": "PAID",
       "createdAt": "2024-01-11T00:00:00.000Z",
-      "updatedAt": "2024-01-11T00:00:00.000Z",
-      "paidAt": null,
-      "paidByAgentId": null
+      "updatedAt": "2026-08-22T18:34:12.774Z",
+      "paidAt": "2026-08-22T18:34:12.774Z",
+      "paidByAgentId": "agent-4"
     },
     {
       "id": "transfer-3",
@@ -158,11 +171,11 @@
       "fee": 1500,
       "totalAmount": 76500,
       "withdrawalCode": "3456",
-      "status": "CREATED",
+      "status": "PAID",
       "createdAt": "2024-01-13T00:00:00.000Z",
-      "updatedAt": "2024-01-13T00:00:00.000Z",
-      "paidAt": null,
-      "paidByAgentId": null
+      "updatedAt": "2026-08-22T18:33:00.540Z",
+      "paidAt": "2026-08-22T18:33:00.540Z",
+      "paidByAgentId": "agent-2"
     },
     {
       "id": "transfer-5",
@@ -205,6 +218,27 @@
       "paidAt": "2026-08-22T02:58:54.646Z",
       "paidByAgentId": "agent-3",
       "id": "xGeAlOc8CsM"
+    },
+    {
+      "reference": "TRF-2026-9401",
+      "senderName": "mariama diallo",
+      "senderPhone": "778021529",
+      "receiverName": "adama dillo",
+      "receiverPhone": "778021523",
+      "originAgentId": "agent-2",
+      "destinationAgentId": "agent-4",
+      "originCity": "Dakar",
+      "destinationCity": "Conakry",
+      "amount": 5000,
+      "fee": 250,
+      "totalAmount": 5250,
+      "withdrawalCode": "2048",
+      "status": "PAID",
+      "createdAt": "2026-08-22T19:05:29.401Z",
+      "updatedAt": "2026-08-22T19:08:53.825Z",
+      "paidAt": "2026-08-22T19:08:53.825Z",
+      "paidByAgentId": "agent-4",
+      "id": "8fZXkWAOdVU"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

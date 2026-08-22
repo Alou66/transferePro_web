@@ -5,6 +5,7 @@ import { transferService } from '../services/transferService'
 import type { Transfer } from '../../../types/index'
 import { TransferStatus } from '../../../types/index'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
+import BackButton from '../../../components/common/BackButton'
 import './VerifyWithdrawalCodePage.css'
 
 export default function VerifyWithdrawalCodePage() {
@@ -62,15 +63,7 @@ export default function VerifyWithdrawalCodePage() {
     setVerifying(true)
 
     try {
-      if (code !== transfer.withdrawalCode) {
-        setError('Le code secret est incorrect. Veuillez vérifier le code fourni par le bénéficiaire.')
-        setVerifying(false)
-        return
-      }
-
-      await transferService.updateStatus(transfer.id, {
-        status: TransferStatus.READY_FOR_PAYMENT,
-      })
+      await transferService.verifyWithdrawalCode(transfer.id, code)
 
       setSuccess(true)
       setTimeout(() => {
@@ -115,6 +108,7 @@ export default function VerifyWithdrawalCodePage() {
 
   return (
     <div className="verify-page">
+      <BackButton to="/agent/transfers/incoming" />
       <div className="verify-card">
         <h1>Vérification du code de retrait</h1>
 

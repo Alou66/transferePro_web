@@ -6,7 +6,6 @@ import {
 import type {
   Transfer,
   CreateTransferInput,
-  UpdateTransferStatusInput,
 } from '../../../types/index'
 import { TransferStatus } from '../../../types/index'
 import { agentService } from '../../agents/services/agentService'
@@ -22,6 +21,27 @@ const generateWithdrawalCode = (): string => {
   return Math.floor(Math.random() * 10000)
     .toString()
     .padStart(4, '0')
+}
+
+const ALLOWED_TRANSITIONS: Record<TransferStatus, TransferStatus[]> = {
+  [TransferStatus.CREATED]: [TransferStatus.READY_FOR_PAYMENT, TransferStatus.CANCELLED],
+  [TransferStatus.READY_FOR_PAYMENT]: [TransferStatus.PAID],
+  [TransferStatus.PAID]: [],
+  [TransferStatus.CANCELLED]: [],
+}
+
+function assertTransitionAllowed(currentStatus: TransferStatus, newStatus: TransferStatus): void {
+  const allowed = ALLOWED_TRANSITIONS[currentStatus] || []
+  if (!allowed.includes(newStatus)) {
+    throw new Error(`Transition de statut interdite : ${currentStatus} → ${newStatus}`)
+  }
+}
+
+async function updateTransfer(id: string, data: Partial<Transfer>): Promise<Transfer> {
+  return patch<Transfer>('/transfers', id, {
+    ...data,
+    updatedAt: new Date().toISOString(),
+  })
 }
 
 export const transferService = {
@@ -112,41 +132,20 @@ export const transferService = {
     return post<Transfer>('/transfers', payload)
   },
 
-  async update(id: string, data: Partial<Transfer>): Promise<Transfer> {
-    return patch<Transfer>('/transfers', id, {
-      ...data,
-      updatedAt: new Date().toISOString(),
-    })
-  },
-
-  async updateStatus(id: string, statusData: UpdateTransferStatusInput): Promise<Transfer> {
-    return transferService.update(id, statusData)
-  },
-
   async cancel(id: string): Promise<Transfer> {
     const transfer = await transferService.getById(id)
 
-    if (transfer.status === TransferStatus.PAID) {
-      throw new Error("Impossible d'annuler un transfert déjà payé")
+    if (transfer.status !== TransferStatus.CREATED) {
+      throw new Error("Impossible d'annuler un transfert qui n'est pas à l'état Créé")
     }
 
-    if (transfer.status === TransferStatus.CANCELLED) {
-      throw new Error('Ce transfert est déjà annulé')
-    }
+    assertTransitionAllowed(transfer.status, TransferStatus.CANCELLED)
 
-    return transferService.updateStatus(id, { status: TransferStatus.CANCELLED })
+    return updateTransfer(id, { status: TransferStatus.CANCELLED })
   },
 
   async markAsPaid(id: string, paidByAgentId: string): Promise<Transfer> {
     const transfer = await transferService.getById(id)
-
-    if (transfer.status === TransferStatus.PAID) {
-      throw new Error('Ce transfert a déjà été payé')
-    }
-
-    if (transfer.status === TransferStatus.CANCELLED) {
-      throw new Error("Impossible de payer un transfert annulé")
-    }
 
     if (transfer.status !== TransferStatus.READY_FOR_PAYMENT) {
       throw new Error('Le code de retrait doit être vérifié avant de pouvoir effectuer le paiement.')
@@ -156,13 +155,31 @@ export const transferService = {
       throw new Error("Vous n'êtes pas autorisé à effectuer le paiement de ce transfert.")
     }
 
+    assertTransitionAllowed(transfer.status, TransferStatus.PAID)
+
     const now = new Date().toISOString()
 
-    return transferService.update(id, {
+    return updateTransfer(id, {
       status: TransferStatus.PAID,
       paidAt: now,
       paidByAgentId,
       updatedAt: now,
     })
+  },
+
+  async verifyWithdrawalCode(id: string, code: string): Promise<Transfer> {
+    const transfer = await transferService.getById(id)
+
+    if (transfer.status !== TransferStatus.CREATED) {
+      throw new Error("Impossible de vérifier le code pour un transfert qui n'est pas à l'état Créé")
+    }
+
+    if (transfer.withdrawalCode !== code) {
+      throw new Error('Le code secret est incorrect.')
+    }
+
+    assertTransitionAllowed(transfer.status, TransferStatus.READY_FOR_PAYMENT)
+
+    return updateTransfer(id, { status: TransferStatus.READY_FOR_PAYMENT })
   },
 }

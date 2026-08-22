@@ -54,3 +54,12 @@ export async function remove(path: string, id: string): Promise<void> {
     throw new Error(error.message || `HTTP ${response.status}`)
   }
 }
+
+export const api = {
+  get,
+  getById,
+  post,
+  put,
+  patch,
+  remove,
+}

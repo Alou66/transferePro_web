@@ -47,6 +47,19 @@ export const agentService = {
   },
 
   async updateStatus(id: string, status: UserStatus): Promise<Agent> {
+    const agent = await agentService.getById(id)
+
+    if (agent.role !== UserRole.AGENT) {
+      throw new Error("Impossible de modifier le statut d'un administrateur")
+    }
+
+    if (status === UserStatus.ACTIVE) {
+      const existingActive = await agentService.getActiveAgentByCity(agent.city)
+      if (existingActive && existingActive.id !== id) {
+        throw new Error(`Impossible d'activer cet agent : un agent actif est déjà affecté à la ville ${agent.city}.`)
+      }
+    }
+
     return agentService.update(id, { status })
   },
 

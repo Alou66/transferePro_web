@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { transferService } from '../services/transferService'
 import { agentService } from '../../agents/services/agentService'
-import { City } from '../../../types/index'
+import { cityService } from '../../cities/services/cityService'
+import type { CityModel } from '../../cities/services/cityService'
 import { calculateTransferFee } from '../utils/calculateTransferFee'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import './CreateTransferPage.css'
@@ -18,12 +19,14 @@ export default function CreateTransferPage() {
   const [senderPhone, setSenderPhone] = useState('')
   const [receiverName, setReceiverName] = useState('')
   const [receiverPhone, setReceiverPhone] = useState('')
-  const [destinationCity, setDestinationCity] = useState<City>(City.DAKAR)
+  const [destinationCity, setDestinationCity] = useState('')
   const [amount, setAmount] = useState('')
+  const [cities, setCities] = useState<CityModel[]>([])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [citiesLoading, setCitiesLoading] = useState(true)
 
   const numericAmount = Number(amount)
   const hasValidAmount = amount !== '' && !Number.isNaN(numericAmount) && numericAmount >= MIN_TRANSFER_AMOUNT
@@ -36,7 +39,29 @@ export default function CreateTransferPage() {
     receiverName.trim().length >= 2 &&
     receiverPhone.trim().length >= 2 &&
     hasValidAmount &&
+    destinationCity !== '' &&
     destinationCity !== user?.city
+
+  const didSetDefaultCity = useRef(false)
+
+  useEffect(() => {
+    async function loadCities() {
+      try {
+        const data = await cityService.getAll()
+        setCities(data)
+        if (data.length > 0 && !didSetDefaultCity.current) {
+          setDestinationCity(data[0].name)
+          didSetDefaultCity.current = true
+        }
+      } catch {
+        setError('Impossible de charger les villes.')
+      } finally {
+        setCitiesLoading(false)
+      }
+    }
+
+    loadCities()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -169,16 +194,22 @@ export default function CreateTransferPage() {
             </div>
             <div className="form-group">
               <label htmlFor="destinationCity">Ville de destination</label>
-              <select
-                id="destinationCity"
-                value={destinationCity}
-                onChange={(e) => setDestinationCity(e.target.value as City)}
-                required
-              >
-                <option value={City.DAKAR}>{City.DAKAR}</option>
-                <option value={City.ZIGUINCHOR}>{City.ZIGUINCHOR}</option>
-                <option value={City.CONAKRY}>{City.CONAKRY}</option>
-              </select>
+              {citiesLoading ? (
+                <p className="create-transfer-cities-loading">Chargement des villes...</p>
+              ) : (
+                <select
+                  id="destinationCity"
+                  value={destinationCity}
+                  onChange={(e) => setDestinationCity(e.target.value)}
+                  required
+                >
+                  {cities.map((city) => (
+                    <option key={city.id} value={city.name}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </fieldset>
 
