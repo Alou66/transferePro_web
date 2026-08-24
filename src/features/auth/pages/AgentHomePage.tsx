@@ -1,19 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { transferService } from '../../transfers/services/transferService'
-import { TransferStatus } from '../../../types/index'
+import { TransferStatus, type Transfer } from '../../../types/index'
+import { calculateAgentStats, getActivePeriodStart, getCurrentCollectionPeriod } from '../../transfers/utils/agentStatsUtils'
 import TransferStatusBadge from '../../transfers/components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
 import './AgentDashboard.css'
-
-interface DashboardStats {
-  created: number
-  incoming: number
-  paid: number
-  totalSent: number
-  totalCollected: number
-}
 
 interface RecentActivity {
   id: string
@@ -28,16 +21,12 @@ interface RecentActivity {
 
 export default function AgentHomePage() {
   const { user } = useAuth()
-  const [stats, setStats] = useState<DashboardStats>({
-    created: 0,
-    incoming: 0,
-    paid: 0,
-    totalSent: 0,
-    totalCollected: 0,
-  })
+  const [allTransfers, setAllTransfers] = useState<Transfer[]>([])
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeFrom, setActiveFrom] = useState<string | null>(null)
+  const [collectionPeriod, setCollectionPeriod] = useState<Awaited<ReturnType<typeof getCurrentCollectionPeriod>> | null>(null)
 
   const loadData = useCallback(async () => {
     if (!user) return
@@ -46,27 +35,14 @@ export default function AgentHomePage() {
     setError(null)
 
     try {
-      const [created, incoming, paid, all] = await Promise.all([
-        transferService.getCreatedByAgent(user.id),
-        transferService.getIncomingForAgent(user.id),
-        transferService.getPaidByAgent(user.id),
-        transferService.getAllForAgent(user.id),
-      ])
+      const all = await transferService.getAllForAgent(user.id)
+      setAllTransfers(all)
 
-      const totalSent = created.reduce((sum, t) => sum + t.amount, 0)
-      const totalCollected = incoming
-        .filter((t) => t.status === TransferStatus.PAID)
-        .reduce((sum, t) => sum + t.amount, 0)
+      const periodStart = await getActivePeriodStart(user.id)
+      setActiveFrom(periodStart)
 
-      setStats({
-        created: created.length,
-        incoming: incoming.filter(
-          (t) => t.status === TransferStatus.CREATED || t.status === TransferStatus.READY_FOR_PAYMENT,
-        ).length,
-        paid: paid.length,
-        totalSent,
-        totalCollected,
-      })
+      const period = await getCurrentCollectionPeriod(user.id)
+      setCollectionPeriod(period)
 
       const activity: RecentActivity[] = all.slice(0, 5).map((transfer) => {
         let label = 'Transfert envoyé'
@@ -94,6 +70,41 @@ export default function AgentHomePage() {
       setLoading(false)
     }
   }, [user])
+
+  useEffect(() => {
+    // oxlint-disable-next-line react-hooks/set-state-in-effect
+    loadData()
+  }, [loadData])
+
+  const stats = useMemo(() => {
+    if (!user) {
+      return {
+        created: 0,
+        incoming: 0,
+        paid: 0,
+        totalCollected: 0,
+        totalDebited: 0,
+        feesGenerated: 0,
+        operationalBalance: 0,
+      }
+    }
+    const created = allTransfers.filter((t) => t.originAgentId === user.id)
+    const incoming = allTransfers.filter((t) => t.destinationAgentId === user.id)
+    const paid = allTransfers.filter((t) => t.paidByAgentId === user.id)
+    const agentStats = calculateAgentStats(allTransfers, user.id, activeFrom ?? undefined)
+
+    return {
+      created: created.length,
+      incoming: incoming.filter(
+        (t) => t.status === TransferStatus.CREATED || t.status === TransferStatus.READY_FOR_PAYMENT,
+      ).length,
+      paid: paid.length,
+      totalCollected: agentStats.totalCollected,
+      totalDebited: agentStats.totalDebited,
+      feesGenerated: agentStats.feesGenerated,
+      operationalBalance: agentStats.operationalBalance,
+    }
+  }, [allTransfers, user, activeFrom])
 
   useEffect(() => {
     // oxlint-disable-next-line react-hooks/set-state-in-effect
@@ -129,6 +140,19 @@ export default function AgentHomePage() {
       <div className="dashboard-header">
         <h1>Bienvenue, {user.firstName}</h1>
         <p className="dashboard-subtitle">Tableau de bord agent — {user.city}</p>
+        {collectionPeriod && (
+          <p className="dashboard-period">
+            Période actuelle :{' '}
+            {collectionPeriod.isFirstPeriod
+              ? 'depuis le début'
+              : `depuis le ${formatDate(collectionPeriod.startDate!)}`}
+          </p>
+        )}
+        {collectionPeriod && (
+          <p className="dashboard-period-hint">
+            Les statistiques financières ci-dessous concernent uniquement la période actuelle.
+          </p>
+        )}
       </div>
 
       <div className="dashboard-stats">
@@ -145,16 +169,20 @@ export default function AgentHomePage() {
           <span className="stat-label">Transferts payés</span>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{formatCurrency(stats.totalSent)}</span>
-          <span className="stat-label">Montant total envoyé</span>
-        </div>
-        <div className="stat-card">
           <span className="stat-value">{formatCurrency(stats.totalCollected)}</span>
           <span className="stat-label">Montant total encaissé</span>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{formatCurrency(stats.totalCollected - stats.totalSent)}</span>
-          <span className="stat-label">Différence encaissé / envoyé</span>
+          <span className="stat-value">{formatCurrency(stats.totalDebited)}</span>
+          <span className="stat-label">Montant total décaissé</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-value">{formatCurrency(stats.feesGenerated)}</span>
+          <span className="stat-label">Frais générés</span>
+        </div>
+        <div className="stat-card stat-card--highlight">
+          <span className="stat-value">{formatCurrency(stats.operationalBalance)}</span>
+          <span className="stat-label">Solde opérationnel</span>
         </div>
       </div>
 

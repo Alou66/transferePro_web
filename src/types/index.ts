@@ -103,6 +103,16 @@ export interface UpdateTransferStatusInput {
   paidByAgentId?: string | null
 }
 
+export interface CashCollection {
+  id: string
+  agentId: string
+  amount: number
+  collectedAt: string
+  createdBy: string
+  notes?: string
+  createdAt: string
+}
+
 export interface AuthResponse {
   agent: Agent
   token: string

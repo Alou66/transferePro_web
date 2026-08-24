@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { transferService } from '../services/transferService'
 import type { Transfer } from '../../../types/index'
 import { TransferStatus } from '../../../types/index'
+import { calculateAgentStats, getActivePeriodStart } from '../utils/agentStatsUtils'
 import TransferStatusBadge from '../components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -37,6 +38,10 @@ export default function TransferHistoryPage() {
   const [typeFilter, setTypeFilter] = useState<TransferType>('ALL')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [search, setSearch] = useState('')
+  const [activeFrom, setActiveFrom] = useState<string | null>(null)
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     if (!user) return
@@ -47,6 +52,9 @@ export default function TransferHistoryPage() {
     try {
       const data = await transferService.getAllForAgent(user.id)
       setAllTransfers(data)
+
+      const periodStart = await getActivePeriodStart(user.id)
+      setActiveFrom(periodStart)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger l\'historique des transferts.')
     } finally {
@@ -99,21 +107,50 @@ export default function TransferHistoryPage() {
   }, [allTransfers, typeFilter, statusFilter, search, getTransferType])
 
   const stats = useMemo(() => {
-    const sent = allTransfers.filter((t) => t.originAgentId === user?.id)
-    const paid = allTransfers.filter((t) => t.paidByAgentId === user?.id && t.status === TransferStatus.PAID)
-    const totalSent = sent.reduce((sum, t) => sum + t.amount, 0)
+    if (!user) {
+      return {
+        total: 0,
+        sent: 0,
+        paid: 0,
+        totalCollected: 0,
+      }
+    }
+    const sent = allTransfers.filter((t) => t.originAgentId === user.id)
+    const paid = allTransfers.filter((t) => t.paidByAgentId === user.id && t.status === TransferStatus.PAID)
+    const agentStats = calculateAgentStats(allTransfers, user.id, activeFrom ?? undefined)
 
     return {
       total: allTransfers.length,
       sent: sent.length,
       paid: paid.length,
-      totalSent,
+      totalCollected: agentStats.totalCollected,
     }
-  }, [allTransfers, user?.id])
+  }, [allTransfers, user, activeFrom])
 
   const handleRefresh = () => {
     setRefreshing(true)
     loadData()
+  }
+
+  const handleCancel = async () => {
+    if (!cancelTargetId || !user) return
+
+    setCancelling(true)
+    setCancelError(null)
+
+    try {
+      await transferService.cancel(cancelTargetId, user.id)
+      setAllTransfers((prev) =>
+        prev.map((t) =>
+          t.id === cancelTargetId ? { ...t, status: TransferStatus.CANCELLED } : t,
+        ),
+      )
+      setCancelTargetId(null)
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'annulation.')
+    } finally {
+      setCancelling(false)
+    }
   }
 
   if (loading) {
@@ -178,8 +215,8 @@ export default function TransferHistoryPage() {
           <span className="history-stat-label">Payés</span>
         </div>
         <div className="history-stat-card">
-          <span className="history-stat-value">{formatCurrency(stats.totalSent)}</span>
-          <span className="history-stat-label">Montant envoyé</span>
+          <span className="history-stat-value">{formatCurrency(stats.totalCollected)}</span>
+          <span className="history-stat-label">Montant total encaissé</span>
         </div>
       </div>
 
@@ -266,10 +303,50 @@ export default function TransferHistoryPage() {
                     >
                       Voir les détails
                     </button>
+
+                    {user && transfer.originAgentId === user.id && transfer.status === TransferStatus.CREATED && (
+                      <button
+                        onClick={() => setCancelTargetId(transfer.id)}
+                        className="history-cancel-button"
+                        type="button"
+                      >
+                        Annuler
+                      </button>
+                    )}
                   </div>
               </div>
             )
           })}
+        </div>
+      )}
+      {cancelTargetId && (
+        <div className="history-cancel-modal-overlay">
+          <div className="history-cancel-modal">
+            <h2>Annuler le transfert</h2>
+            <p>Vous êtes sur le point d'annuler ce transfert. Cette opération est définitive.</p>
+            {cancelError && (
+              <p className="history-cancel-error">{cancelError}</p>
+            )}
+            <div className="history-cancel-actions">
+              <button
+                onClick={() => {
+                  setCancelTargetId(null)
+                  setCancelError(null)
+                }}
+                className="history-cancel-button-secondary"
+                disabled={cancelling}
+              >
+                Retour
+              </button>
+              <button
+                onClick={handleCancel}
+                className="history-cancel-button-danger"
+                disabled={cancelling}
+              >
+                {cancelling ? 'Annulation...' : 'Confirmer l\'annulation'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

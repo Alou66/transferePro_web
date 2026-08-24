@@ -25,6 +25,16 @@
       "id": "9ecivUF92Nw"
     }
   ],
+  "cash-collections": [
+    {
+      "agentId": "agent-2",
+      "amount": 450500,
+      "collectedAt": "2026-08-23T17:35:17.906Z",
+      "createdBy": "agent-1",
+      "createdAt": "2026-08-23T17:35:17.906Z",
+      "id": "gp8k1GCSfOw"
+    }
+  ],
   "agents": [
     {
       "id": "agent-1",
@@ -239,6 +249,27 @@
       "paidAt": "2026-08-22T19:08:53.825Z",
       "paidByAgentId": "agent-4",
       "id": "8fZXkWAOdVU"
+    },
+    {
+      "reference": "TRF-2026-9689",
+      "senderName": "rama",
+      "senderPhone": "778021529",
+      "receiverName": "assane",
+      "receiverPhone": "778021521",
+      "originAgentId": "agent-2",
+      "destinationAgentId": "kGXG3YkhM_I",
+      "originCity": "Dakar",
+      "destinationCity": "Diountou",
+      "amount": 5000,
+      "fee": 250,
+      "totalAmount": 5250,
+      "withdrawalCode": "2249",
+      "status": "CREATED",
+      "createdAt": "2026-08-23T21:50:19.688Z",
+      "updatedAt": "2026-08-23T21:50:19.688Z",
+      "paidAt": null,
+      "paidByAgentId": null,
+      "id": "zqeAyEqHNOc"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

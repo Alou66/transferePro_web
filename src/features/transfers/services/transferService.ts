@@ -132,11 +132,15 @@ export const transferService = {
     return post<Transfer>('/transfers', payload)
   },
 
-  async cancel(id: string): Promise<Transfer> {
+  async cancel(id: string, agentId?: string): Promise<Transfer> {
     const transfer = await transferService.getById(id)
 
     if (transfer.status !== TransferStatus.CREATED) {
       throw new Error("Impossible d'annuler un transfert qui n'est pas à l'état Créé")
+    }
+
+    if (agentId && transfer.originAgentId !== agentId) {
+      throw new Error("Vous n'êtes pas autorisé à annuler ce transfert.")
     }
 
     assertTransitionAllowed(transfer.status, TransferStatus.CANCELLED)

@@ -20,6 +20,9 @@ export default function TransferDetailsPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paying, setPaying] = useState(false)
   const [isWithdrawalCodeVisible, setIsWithdrawalCodeVisible] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   useEffect(() => {
     if (showPaymentModal) {
@@ -83,6 +86,23 @@ export default function TransferDetailsPage() {
     }
   }
 
+  const handleCancel = async () => {
+    if (!transfer || !user) return
+
+    setCancelling(true)
+    setCancelError(null)
+
+    try {
+      await transferService.cancel(transfer.id, user.id)
+      setTransfer({ ...transfer, status: TransferStatus.CANCELLED })
+      setShowCancelModal(false)
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'annulation.')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="transfer-details-page">
@@ -116,6 +136,7 @@ export default function TransferDetailsPage() {
   const isOriginAgent = transfer.originAgentId === user?.id
   const canVerifyCode = isCreated && isDestinationAgent
   const canPay = isReadyForPayment && isDestinationAgent
+  const canCancel = isCreated && isOriginAgent
   const canViewWithdrawalCode = isOriginAgent
 
   return (
@@ -212,6 +233,16 @@ export default function TransferDetailsPage() {
             </>
           )}
 
+          {canCancel && (
+            <button
+              onClick={() => setShowCancelModal(true)}
+              className="transfer-details-button danger"
+              disabled={cancelling}
+            >
+              Annuler le transfert
+            </button>
+          )}
+
           {isPaid && (
             <div className="transfer-details-paid-badge">
               ✓ Transfert payé
@@ -257,6 +288,41 @@ export default function TransferDetailsPage() {
                 disabled={paying}
               >
                 {paying ? 'Paiement en cours...' : 'Confirmer le paiement'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelModal && (
+        <div
+          className="payment-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-modal-title"
+        >
+          <div className="payment-modal">
+            <h2 id="cancel-modal-title">Annuler le transfert</h2>
+            <p className="payment-modal-amount">
+              Vous êtes sur le point d'annuler le transfert :
+              <strong>{transfer.reference}</strong>
+            </p>
+            <p className="payment-modal-warning">⚠ Cette opération est définitive.</p>
+            {cancelError && <p className="payment-modal-error">{cancelError}</p>}
+            <div className="payment-modal-actions">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="payment-modal-button secondary"
+                disabled={cancelling}
+              >
+                Retour
+              </button>
+              <button
+                onClick={handleCancel}
+                className="payment-modal-button danger"
+                disabled={cancelling}
+              >
+                {cancelling ? 'Annulation...' : 'Confirmer l\'annulation'}
               </button>
             </div>
           </div>
