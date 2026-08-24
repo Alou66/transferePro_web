@@ -33,6 +33,15 @@
       "createdBy": "agent-1",
       "createdAt": "2026-08-23T17:35:17.906Z",
       "id": "gp8k1GCSfOw"
+    },
+    {
+      "agentId": "agent-2",
+      "amount": 5250,
+      "collectedAt": "2026-08-24T22:26:59.057Z",
+      "createdBy": "agent-1",
+      "notes": "recuperation",
+      "createdAt": "2026-08-24T22:26:59.057Z",
+      "id": "u6CTIKXtuwM"
     }
   ],
   "agents": [
@@ -264,12 +273,33 @@
       "fee": 250,
       "totalAmount": 5250,
       "withdrawalCode": "2249",
-      "status": "CREATED",
+      "status": "CANCELLED",
       "createdAt": "2026-08-23T21:50:19.688Z",
-      "updatedAt": "2026-08-23T21:50:19.688Z",
+      "updatedAt": "2026-08-24T22:20:07.194Z",
       "paidAt": null,
       "paidByAgentId": null,
       "id": "zqeAyEqHNOc"
+    },
+    {
+      "reference": "TRF-2026-9997",
+      "senderName": "Alassane Diallo",
+      "senderPhone": "778021529",
+      "receiverName": "Kaw ibrahim",
+      "receiverPhone": "778021522",
+      "originAgentId": "agent-2",
+      "destinationAgentId": "kGXG3YkhM_I",
+      "originCity": "Dakar",
+      "destinationCity": "Diountou",
+      "amount": 5000,
+      "fee": 250,
+      "totalAmount": 5250,
+      "withdrawalCode": "3627",
+      "status": "PAID",
+      "createdAt": "2026-08-24T22:21:59.997Z",
+      "updatedAt": "2026-08-24T22:22:58.323Z",
+      "paidAt": "2026-08-24T22:22:58.323Z",
+      "paidByAgentId": "kGXG3YkhM_I",
+      "id": "LYMA5amWXig"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
