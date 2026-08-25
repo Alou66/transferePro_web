@@ -35,11 +35,17 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-brand">
+        <span className="login-brand-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+        </span>
         <span className="login-brand-text">
           <span className="login-brand-name">Transfere</span>
           <span className="login-brand-pro">Pro</span>
-          <span className="login-brand-description">de Alassane</span>
         </span>
+        <span className="login-brand-divider" aria-hidden="true" />
+        <span className="login-brand-description">de Alassane</span>
       </div>
       <div className="login-card">
         <h1>Connexion</h1>

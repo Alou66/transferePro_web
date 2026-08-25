@@ -13,12 +13,11 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5);
   background: white;
   border: 1px solid var(--color-slate-200);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-card);
-  
 }
 
 .login-brand-icon {
@@ -37,11 +36,11 @@
 
 .login-brand-text {
   display: inline-flex;
-  align-items: baseline;
-  gap: 0;
+  align-items: center;
+  gap: var(--space-1);
   font-size: var(--text-xl);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
@@ -51,6 +50,20 @@
 
 .login-brand-pro {
   color: var(--color-primary);
+}
+
+.login-brand-divider {
+  width: 1px;
+  height: 1rem;
+  background: var(--color-slate-300);
+  border-radius: 9999px;
+}
+
+.login-brand-description {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-slate-500);
+  letter-spacing: 0.02em;
 }
 
 .login-card {
@@ -206,8 +219,22 @@
     font-size: var(--text-2xl);
   }
 
+  .login-brand {
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
+  }
+
   .login-brand-text {
     font-size: var(--text-lg);
+  }
+
+  .login-brand-description {
+    font-size: var(--text-xs);
+  }
+
+  .login-brand-icon {
+    width: 1.75rem;
+    height: 1.75rem;
   }
 }
 
@@ -225,7 +252,21 @@
     font-size: var(--text-4xl);
   }
 
+  .login-brand {
+    padding: var(--space-4) var(--space-6);
+    gap: var(--space-4);
+  }
+
   .login-brand-text {
     font-size: var(--text-2xl);
+  }
+
+  .login-brand-description {
+    font-size: var(--text-base);
+  }
+
+  .login-brand-icon {
+    width: 2.5rem;
+    height: 2.5rem;
   }
 }
