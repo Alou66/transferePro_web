@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../features/auth/services/authService'
-import { cityService } from '../features/cities/services/cityService'
-import type { CityModel } from '../features/cities/services/cityService'
+import { useAvailableCitiesForRegistration } from '../features/cities/hooks/useCities'
 import BackButton from '../components/common/BackButton'
 import './RegisterPage.css'
 
@@ -16,28 +15,17 @@ export default function RegisterPage() {
     password: '',
     cityId: '',
   })
-  const [cities, setCities] = useState<CityModel[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [citiesLoading, setCitiesLoading] = useState(true)
+
+  const { data: cities = [], isLoading: citiesLoading, isError: citiesFailed } = useAvailableCitiesForRegistration()
 
   useEffect(() => {
-    async function loadCities() {
-      try {
-        const data = await cityService.getAvailableForRegistration()
-        setCities(data)
-        if (data.length > 0) {
-          setForm((prev) => ({ ...prev, cityId: data[0].id }))
-        }
-      } catch {
-        setError('Impossible de charger les villes disponibles.')
-      } finally {
-        setCitiesLoading(false)
-      }
+    if (cities.length > 0 && !form.cityId) {
+      setForm((prev) => ({ ...prev, cityId: cities[0].id }))
     }
-
-    loadCities()
-  }, [])
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [cities])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -66,7 +54,11 @@ export default function RegisterPage() {
         <h1>Inscription agent</h1>
         <p className="register-subtitle">Créez votre compte pour accéder à la plateforme</p>
 
-        {error && <div className="register-error">{error}</div>}
+        {(error || citiesFailed) && (
+          <div className="register-error">
+            {error ?? 'Impossible de charger les villes disponibles.'}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="register-form">
           <div className="form-row">

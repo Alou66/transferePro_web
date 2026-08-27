@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { transferService } from '../services/transferService'
-import { cityService } from '../../cities/services/cityService'
-import type { CityModel } from '../../cities/services/cityService'
+import { useActiveCities } from '../../cities/hooks/useCities'
 import { calculateTransferFee } from '../utils/calculateTransferFee'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import './CreateTransferPage.css'
@@ -20,12 +19,12 @@ export default function CreateTransferPage() {
   const [recipientPhone, setRecipientPhone] = useState('')
   const [destinationCityId, setDestinationCityId] = useState('')
   const [amount, setAmount] = useState('')
-  const [cities, setCities] = useState<CityModel[]>([])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
-  const [citiesLoading, setCitiesLoading] = useState(true)
+
+  const { data: cities = [], isLoading: citiesLoading, isError: citiesFailed } = useActiveCities()
 
   const numericAmount = Number(amount)
   const hasValidAmount = amount !== '' && !Number.isNaN(numericAmount) && numericAmount >= MIN_TRANSFER_AMOUNT
@@ -43,23 +42,11 @@ export default function CreateTransferPage() {
   const didSetDefaultCity = useRef(false)
 
   useEffect(() => {
-    async function loadCities() {
-      try {
-        const data = await cityService.getActive()
-        setCities(data)
-        if (data.length > 0 && !didSetDefaultCity.current) {
-          setDestinationCityId(data[0].id)
-          didSetDefaultCity.current = true
-        }
-      } catch {
-        setError('Impossible de charger les villes.')
-      } finally {
-        setCitiesLoading(false)
-      }
+    if (cities.length > 0 && !didSetDefaultCity.current) {
+      setDestinationCityId(cities[0].id)
+      didSetDefaultCity.current = true
     }
-
-    loadCities()
-  }, [])
+  }, [cities])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,7 +97,11 @@ export default function CreateTransferPage() {
         <h1>Nouveau transfert</h1>
         <p className="create-transfer-subtitle">Enregistrez les informations du transfert.</p>
 
-        {error && <div className="create-transfer-error">{error}</div>}
+        {(error || citiesFailed) && (
+          <div className="create-transfer-error">
+            {error ?? 'Impossible de charger les villes.'}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="create-transfer-form">
           <fieldset className="create-transfer-fieldset">

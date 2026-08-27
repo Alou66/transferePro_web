@@ -1,89 +1,60 @@
-import { useState, useEffect } from 'react'
-import { cityService } from '../../cities/services/cityService'
+import { useState } from 'react'
+import { useCities, useCreateCity, useActivateCity, useDeactivateCity } from '../../cities/hooks/useCities'
 import type { CityModel } from '../../cities/services/cityService'
 import './AdminCitiesPage.css'
 
 export default function AdminCitiesPage() {
-  const [cities, setCities] = useState<CityModel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
+  const { data: cities = [], isLoading: loading, isFetching, error: queryError, refetch } = useCities()
+  const createCity = useCreateCity()
+  const activateCity = useActivateCity()
+  const deactivateCity = useDeactivateCity()
+
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState<CityModel | null>(null)
   const [newCityName, setNewCityName] = useState('')
-  const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const loadData = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const data = await cityService.getAll()
-      setCities(data)
-    } catch {
-      setError('Impossible de charger les villes.')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }
-
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  }, [])
+  const error = queryError ? 'Impossible de charger les villes.' : null
+  const refreshing = isFetching && !loading
+  const actionLoading = createCity.isPending || activateCity.isPending || deactivateCity.isPending
 
   const handleRefresh = () => {
-    setRefreshing(true)
-    loadData()
+    refetch()
   }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    setActionLoading(true)
     setActionError(null)
 
     try {
-      await cityService.create({ name: newCityName })
+      await createCity.mutateAsync({ name: newCityName })
       setNewCityName('')
       setShowCreateModal(false)
-      await loadData()
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Impossible de créer la ville.')
-    } finally {
-      setActionLoading(false)
     }
   }
 
   const handleDeactivate = async () => {
     if (!showConfirmModal) return
 
-    setActionLoading(true)
     setActionError(null)
 
     try {
-      await cityService.deactivate(showConfirmModal.id)
+      await deactivateCity.mutateAsync(showConfirmModal.id)
       setShowConfirmModal(null)
-      await loadData()
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Impossible de désactiver la ville.')
-    } finally {
-      setActionLoading(false)
     }
   }
 
   const handleActivate = async (id: string) => {
-    setActionLoading(true)
     setActionError(null)
 
     try {
-      await cityService.activate(id)
-      await loadData()
+      await activateCity.mutateAsync(id)
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Impossible d\'activer la ville.')
-    } finally {
-      setActionLoading(false)
     }
   }
 
@@ -121,7 +92,7 @@ export default function AdminCitiesPage() {
       {error && !loading && (
         <div className="admin-cities-error">
           <p>{error}</p>
-          <button onClick={loadData} className="admin-retry-button">
+          <button onClick={handleRefresh} className="admin-retry-button">
             Réessayer
           </button>
         </div>
@@ -211,7 +182,7 @@ export default function AdminCitiesPage() {
                   className="admin-modal-button primary"
                   disabled={actionLoading}
                 >
-                  {actionLoading ? 'Création...' : 'Créer'}
+                  {createCity.isPending ? 'Création...' : 'Créer'}
                 </button>
               </div>
             </form>
@@ -244,7 +215,7 @@ export default function AdminCitiesPage() {
                 className="admin-modal-button danger"
                 disabled={actionLoading}
               >
-                {actionLoading ? 'Désactivation...' : 'Désactiver'}
+                {deactivateCity.isPending ? 'Désactivation...' : 'Désactiver'}
               </button>
             </div>
           </div>
