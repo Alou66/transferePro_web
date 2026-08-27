@@ -12,9 +12,8 @@ export interface CashCollectionCreateInput {
 // Le back plafonne `limit` à 100 (voir cashCollectionsQuerySchema côté API).
 const MAX_PAGE_SIZE = 100
 
-// Utilisé pour l'affichage complet et pour déterminer la dernière collecte
-// (borne de la période de calcul du solde agent) : récupère systématiquement
-// l'intégralité des collectes, toutes pages confondues.
+// Utilisé pour l'affichage complet de l'historique des récupérations :
+// récupère systématiquement l'intégralité des collectes, toutes pages confondues.
 export async function getByAgentId(agentId: string): Promise<CashCollection[]> {
   const first = await api.get<PaginatedResponse<CashCollection>>(
     `/agents/${agentId}/cash-collections?page=1&limit=${MAX_PAGE_SIZE}`,

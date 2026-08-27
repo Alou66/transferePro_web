@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useAgent, useUpdateAgentStatus, useAgentStatistics } from '../../agents/hooks/useAgents'
-import { create as createCashCollection, getByAgentId } from '../../transfers/services/cashCollectionService'
+import { useCashCollections, useCreateCashCollection } from '../../transfers/hooks/useCashCollections'
 import { UserRole, UserStatus } from '../../../types/index'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -33,11 +33,7 @@ export default function AdminAgentDetailsPage() {
     label: string
     message: string
   } | null>(null)
-  const {
-    data: statistics,
-    isLoading: statsLoading,
-    refetch: refetchStatistics,
-  } = useAgentStatistics(agentId)
+  const { data: statistics, isLoading: statsLoading } = useAgentStatistics(agentId)
   const agentStats = statistics
     ? {
         totalCollected: statistics.financial.totalCreated,
@@ -47,12 +43,27 @@ export default function AdminAgentDetailsPage() {
       }
     : null
   const isFirstPeriod = statistics ? statistics.period.lastCollectionAt === null : true
-  const [collections, setCollections] = useState<CollectionRow[]>([])
-  const [collectionsLoading, setCollectionsLoading] = useState(false)
+  const { data: rawCollections, isLoading: collectionsLoading } = useCashCollections(agentId)
+  const createCashCollection = useCreateCashCollection()
+  const collecting = createCashCollection.isPending
+  const collections: CollectionRow[] = useMemo(() => {
+    if (!rawCollections) return []
+    return rawCollections
+      .slice()
+      .sort((a, b) => new Date(b.collectedAt).getTime() - new Date(a.collectedAt).getTime())
+      .map((c) => ({
+        id: c.id,
+        amount: c.amount,
+        collectedAt: c.collectedAt,
+        createdBy: c.createdBy,
+        notes: c.notes,
+        createdAt: c.createdAt,
+        creatorName: c.admin ? `${c.admin.firstName} ${c.admin.lastName}` : 'Administrateur inconnu',
+      }))
+  }, [rawCollections])
   const [showCollectionModal, setShowCollectionModal] = useState(false)
   const [collectionAmount, setCollectionAmount] = useState('')
   const [collectionNotes, setCollectionNotes] = useState('')
-  const [collecting, setCollecting] = useState(false)
   const [collectError, setCollectError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -65,38 +76,6 @@ export default function AdminAgentDetailsPage() {
       document.body.style.overflow = ''
     }
   }, [showCollectionModal, confirmAction])
-
-  useEffect(() => {
-    async function loadCollections() {
-      if (!agentId) return
-
-      setCollectionsLoading(true)
-      try {
-        const items = await getByAgentId(agentId)
-        const sorted = items
-          .slice()
-          .sort((a, b) => new Date(b.collectedAt).getTime() - new Date(a.collectedAt).getTime())
-
-        const rows: CollectionRow[] = sorted.map((c) => ({
-          id: c.id,
-          amount: c.amount,
-          collectedAt: c.collectedAt,
-          createdBy: c.createdBy,
-          notes: c.notes,
-          createdAt: c.createdAt,
-          creatorName: c.admin ? `${c.admin.firstName} ${c.admin.lastName}` : 'Administrateur inconnu',
-        }))
-
-        setCollections(rows)
-      } catch {
-        // silent fail for collections
-      } finally {
-        setCollectionsLoading(false)
-      }
-    }
-
-    loadCollections()
-  }, [agentId])
 
   const handleStatusChange = async () => {
     if (!agent || !confirmAction) return
@@ -127,11 +106,10 @@ export default function AdminAgentDetailsPage() {
       return
     }
 
-    setCollecting(true)
     setCollectError(null)
 
     try {
-      await createCashCollection({
+      await createCashCollection.mutateAsync({
         agentId: agent.id,
         amount,
         collectedAt: new Date().toISOString(),
@@ -143,28 +121,8 @@ export default function AdminAgentDetailsPage() {
       setCollectionAmount('')
       setCollectionNotes('')
       setSuccessMessage(`Récupération de ${formatCurrency(amount)} enregistrée avec succès.`)
-
-      await refetchStatistics()
-
-      const updatedCollections = await getByAgentId(agentId)
-      setCollections(
-        updatedCollections
-          .slice()
-          .sort((a, b) => new Date(b.collectedAt).getTime() - new Date(a.collectedAt).getTime())
-          .map((c) => ({
-            id: c.id,
-            amount: c.amount,
-            collectedAt: c.collectedAt,
-            createdBy: c.createdBy,
-            notes: c.notes,
-            createdAt: c.createdAt,
-            creatorName: c.admin ? `${c.admin.firstName} ${c.admin.lastName}` : 'Administrateur inconnu',
-          })),
-      )
     } catch (err) {
       setCollectError(err instanceof Error ? err.message : 'Impossible d\'enregistrer la récupération.')
-    } finally {
-      setCollecting(false)
     }
   }
 
