@@ -22,7 +22,7 @@ interface CollectionRow {
 export default function AdminAgentDetailsPage() {
   const { agentId } = useParams<{ agentId: string }>()
   const { user: adminUser } = useAuth()
-  const { data: agent, isLoading: loading, isError: agentFailed } = useAgent(agentId)
+  const { data: agent, isLoading: agentLoading, isError: agentFailed } = useAgent(agentId)
   const updateAgentStatus = useUpdateAgentStatus()
   const actionLoading = updateAgentStatus.isPending
   const error = !agentId || agentFailed ? 'Agent introuvable.' : null
@@ -65,6 +65,11 @@ export default function AdminAgentDetailsPage() {
   const [collectionAmount, setCollectionAmount] = useState('')
   const [collectionNotes, setCollectionNotes] = useState('')
   const [collectError, setCollectError] = useState<string | null>(null)
+
+  // Agent, statistiques et historique des encaissements sont indépendants
+  // mais se chargent en parallèle : un seul indicateur de chargement pour
+  // toute la page plutôt que trois flashs de spinner successifs.
+  const loading = agentLoading || statsLoading || collectionsLoading
 
   useEffect(() => {
     if (showCollectionModal || confirmAction) {
@@ -256,12 +261,7 @@ export default function AdminAgentDetailsPage() {
           </div>
         </div>
 
-        {statsLoading ? (
-          <div className="admin-agent-stats-loading">
-            <div className="admin-loading-spinner" />
-            <p>Chargement des statistiques...</p>
-          </div>
-        ) : agentStats && statistics ? (
+        {agentStats && statistics ? (
           <div className="admin-agent-collection-section">
             <h2>Situation financière actuelle</h2>
             <p className="admin-agent-period">
@@ -290,12 +290,7 @@ export default function AdminAgentDetailsPage() {
 
         <div className="admin-agent-collections-section">
           <h2>Historique des récupérations</h2>
-          {collectionsLoading ? (
-            <div className="admin-agent-stats-loading">
-              <div className="admin-loading-spinner" />
-              <p>Chargement de l'historique...</p>
-            </div>
-          ) : collections.length === 0 ? (
+          {collections.length === 0 ? (
             <p className="admin-agent-collections-empty">
               Aucune récupération financière n'a encore été enregistrée pour cet agent.
             </p>
@@ -397,7 +392,7 @@ export default function AdminAgentDetailsPage() {
               <button
                 onClick={openCollectionModal}
                 className="admin-action-button primary"
-                disabled={actionLoading || statsLoading}
+                disabled={actionLoading}
               >
                 Enregistrer une récupération
               </button>
