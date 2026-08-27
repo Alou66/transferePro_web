@@ -59,10 +59,10 @@ export function calculateFinancialIndicators(transfers: Transfer[]): FinancialIn
 }
 
 export function calculateCityStats(transfers: Transfer[], cities?: City[]): CityStats[] {
-  const cityList = cities || Array.from(new Set(transfers.map((t) => t.destinationCity)))
+  const cityList = cities || Array.from(new Set(transfers.map((t) => t.destinationCity?.name ?? '')))
 
   return cityList.map((city) => {
-    const cityTransfers = transfers.filter((t) => t.destinationCity === city)
+    const cityTransfers = transfers.filter((t) => t.destinationCity?.name === city)
     const nonCancelled = cityTransfers.filter((t) => t.status !== TransferStatus.CANCELLED)
     const paid = cityTransfers.filter((t) => t.status === TransferStatus.PAID)
 

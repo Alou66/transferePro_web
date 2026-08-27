@@ -14,7 +14,7 @@ export default function RegisterPage() {
     phone: '',
     email: '',
     password: '',
-    city: '',
+    cityId: '',
   })
   const [cities, setCities] = useState<CityModel[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +27,7 @@ export default function RegisterPage() {
         const data = await cityService.getAvailableForRegistration()
         setCities(data)
         if (data.length > 0) {
-          setForm((prev) => ({ ...prev, city: data[0].name }))
+          setForm((prev) => ({ ...prev, cityId: data[0].id }))
         }
       } catch {
         setError('Impossible de charger les villes disponibles.')
@@ -141,14 +141,14 @@ export default function RegisterPage() {
               </p>
             ) : (
               <select
-                id="city"
-                name="city"
-                value={form.city}
+                id="cityId"
+                name="cityId"
+                value={form.cityId}
                 onChange={handleChange}
                 required
               >
                 {cities.map((city) => (
-                  <option key={city.id} value={city.name}>
+                  <option key={city.id} value={city.id}>
                     {city.name}
                   </option>
                 ))}

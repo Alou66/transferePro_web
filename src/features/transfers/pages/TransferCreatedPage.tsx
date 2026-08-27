@@ -77,11 +77,11 @@ export default function TransferCreatedPage() {
           </div>
           <div className="transfer-created-row">
             <span>Destination</span>
-            <strong>{transfer.destinationCity}</strong>
+            <strong>{transfer.destinationCity?.name ?? ''}</strong>
           </div>
           <div className="transfer-created-row">
             <span>Nom du bénéficiaire</span>
-            <strong>{transfer.receiverName}</strong>
+            <strong>{transfer.recipientName}</strong>
           </div>
           <div className="transfer-created-row">
             <span>Statut</span>

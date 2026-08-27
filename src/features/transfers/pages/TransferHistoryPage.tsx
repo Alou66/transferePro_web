@@ -50,10 +50,11 @@ export default function TransferHistoryPage() {
     setError(null)
 
     try {
-      const data = await transferService.getAllForAgent(user.id)
+      const [data, periodStart] = await Promise.all([
+        transferService.getAllForAgent(),
+        getActivePeriodStart(user.id),
+      ])
       setAllTransfers(data)
-
-      const periodStart = await getActivePeriodStart(user.id)
       setActiveFrom(periodStart)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger l\'historique des transferts.')
@@ -98,8 +99,8 @@ export default function TransferHistoryPage() {
         t.reference.toLowerCase().includes(query) ||
         t.senderName.toLowerCase().includes(query) ||
         t.senderPhone.includes(query) ||
-        t.receiverName.toLowerCase().includes(query) ||
-        t.receiverPhone.includes(query),
+        t.recipientName.toLowerCase().includes(query) ||
+        t.recipientPhone.includes(query),
       )
     }
 
@@ -139,7 +140,7 @@ export default function TransferHistoryPage() {
     setCancelError(null)
 
     try {
-      await transferService.cancel(cancelTargetId, user.id)
+      await transferService.cancel(cancelTargetId)
       setAllTransfers((prev) =>
         prev.map((t) =>
           t.id === cancelTargetId ? { ...t, status: TransferStatus.CANCELLED } : t,
@@ -281,7 +282,7 @@ export default function TransferHistoryPage() {
                     <div className="history-section">
                       <span className="history-section-label">Trajet</span>
                       <p className="history-section-value">
-                        {transfer.originCity} → {transfer.destinationCity}
+                        {transfer.originCity?.name ?? ''} → {transfer.destinationCity?.name ?? ''}
                       </p>
                     </div>
 

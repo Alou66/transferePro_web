@@ -27,9 +27,10 @@ interface RecentTransfer {
   id: string
   reference: string
   senderName: string
-  receiverName: string
+  recipientName: string
   destinationCity: string
   amount: number
+  fee: number
   status: TransferStatus
   createdAt: string
 }
@@ -49,7 +50,7 @@ export default function AdminDashboardPage() {
     try {
       const [agentsData, transfersData] = await Promise.all([
         agentService.getAll(),
-        transferService.getAll(),
+        transferService.getAllExhaustive(),
       ])
       setAgents(agentsData)
       setTransfers(transfersData)
@@ -84,7 +85,7 @@ export default function AdminDashboardPage() {
     const cancelled = transfers.filter((t) => t.status === TransferStatus.CANCELLED).length
     const totalAmount = transfers
       .filter((t) => t.status !== TransferStatus.CANCELLED)
-      .reduce((sum, t) => sum + t.amount, 0)
+      .reduce((sum, t) => sum + t.amount + t.fee, 0)
 
     return {
       total: transfers.length,
@@ -103,9 +104,10 @@ export default function AdminDashboardPage() {
         id: t.id,
         reference: t.reference,
         senderName: t.senderName,
-        receiverName: t.receiverName,
-        destinationCity: t.destinationCity,
+        recipientName: t.recipientName,
+        destinationCity: t.destinationCity?.name ?? '',
         amount: t.amount,
+        fee: t.fee,
         status: t.status,
         createdAt: t.createdAt,
       }))
@@ -268,7 +270,7 @@ export default function AdminDashboardPage() {
                 <div className="admin-recent-body">
                   <p className="admin-recent-label">{getTransferLabel(transfer.status)}</p>
                   <p className="admin-recent-route">
-                    {transfer.senderName} → {transfer.receiverName} ({transfer.destinationCity})
+                    {transfer.senderName} → {transfer.recipientName} ({transfer.destinationCity})
                   </p>
                   <div className="admin-recent-footer">
                     <span className="admin-recent-amount">{formatCurrency(transfer.amount)}</span>

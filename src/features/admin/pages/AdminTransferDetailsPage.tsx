@@ -113,7 +113,7 @@ export default function AdminTransferDetailsPage() {
     setCancelError(null)
 
     try {
-      await transferService.cancel(transfer.id)
+      await transferService.adminCancel(transfer.id)
       setTransfer({ ...transfer, status: TransferStatus.CANCELLED })
       setShowCancelModal(false)
     } catch (err) {
@@ -190,7 +190,7 @@ export default function AdminTransferDetailsPage() {
             </div>
             <div>
               <span className="admin-transfer-details-label">Montant total</span>
-              <p className="admin-transfer-details-value">{formatCurrency(transfer.totalAmount)}</p>
+              <p className="admin-transfer-details-value">{formatCurrency(transfer.amount + transfer.fee)}</p>
             </div>
           </div>
         </div>
@@ -214,11 +214,11 @@ export default function AdminTransferDetailsPage() {
           <div className="admin-transfer-details-grid">
             <div>
               <span className="admin-transfer-details-label">Nom</span>
-              <p className="admin-transfer-details-value">{transfer.receiverName}</p>
+              <p className="admin-transfer-details-value">{transfer.recipientName}</p>
             </div>
             <div>
               <span className="admin-transfer-details-label">Téléphone</span>
-              <p className="admin-transfer-details-value">{transfer.receiverPhone}</p>
+              <p className="admin-transfer-details-value">{transfer.recipientPhone}</p>
             </div>
           </div>
         </div>
@@ -228,11 +228,11 @@ export default function AdminTransferDetailsPage() {
           <div className="admin-transfer-details-grid">
             <div>
               <span className="admin-transfer-details-label">Ville d'origine</span>
-              <p className="admin-transfer-details-value">{transfer.originCity}</p>
+              <p className="admin-transfer-details-value">{transfer.originCity?.name ?? ''}</p>
             </div>
             <div>
               <span className="admin-transfer-details-label">Ville de destination</span>
-              <p className="admin-transfer-details-value">{transfer.destinationCity}</p>
+              <p className="admin-transfer-details-value">{transfer.destinationCity?.name ?? ''}</p>
             </div>
           </div>
         </div>
@@ -311,7 +311,7 @@ export default function AdminTransferDetailsPage() {
             <div className="admin-transfer-cancel-summary">
               <p><strong>Référence :</strong> {transfer.reference}</p>
               <p><strong>Montant :</strong> {formatCurrency(transfer.amount)}</p>
-              <p><strong>Bénéficiaire :</strong> {transfer.receiverName}</p>
+              <p><strong>Bénéficiaire :</strong> {transfer.recipientName}</p>
             </div>
             <p className="admin-transfer-cancel-warning">Cette action est définitive.</p>
             {cancelError && (

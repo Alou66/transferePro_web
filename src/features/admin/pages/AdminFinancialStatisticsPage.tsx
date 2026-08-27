@@ -84,7 +84,7 @@ export default function AdminFinancialStatisticsPage() {
     try {
       const [agentsData, transfersData, citiesData] = await Promise.all([
         agentService.getAll(),
-        transferService.getAll(),
+        transferService.getAllExhaustive(),
         cityService.getAll(),
       ])
       setAgents(agentsData.filter((a) => a.role === UserRole.AGENT))

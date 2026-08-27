@@ -114,7 +114,7 @@ export default function VerifyWithdrawalCodePage() {
 
         <div className="verify-transfer-info">
           <p><strong>Référence :</strong> {transfer.reference}</p>
-          <p><strong>Bénéficiaire :</strong> {transfer.receiverName}</p>
+          <p><strong>Bénéficiaire :</strong> {transfer.recipientName}</p>
           <p><strong>Montant :</strong> {formatCurrency(transfer.amount)}</p>
         </div>
 

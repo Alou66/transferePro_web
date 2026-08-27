@@ -3,66 +3,86 @@ import type {
   LoginInput,
   RegisterAgentInput,
   AuthResponse,
-  CreateAgentInput,
 } from '../../../types/index'
-import { UserRole, UserStatus } from '../../../types/index'
-import { agentService } from '../../agents/services/agentService'
+import { api } from '../../../services/api'
 
 const SESSION_KEY = 'transferepro_session'
 
-function generateDemoToken(agentId: string): string {
-  return `demo-${agentId}-${Date.now()}`
+function mapBackendUserToAgent(user: {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  role: string
+  status: string
+  city: { id: string; name: string }
+}): Agent {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    email: user.email,
+    password: '',
+    city: user.city?.name ?? '',
+    role: user.role as Agent['role'],
+    status: user.status as Agent['status'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
 }
 
 export const authService = {
   async login(input: LoginInput): Promise<AuthResponse> {
-    const agent = await agentService.getByEmail(input.email)
+    const result = await api.post<{
+      accessToken: string
+      user: {
+        id: string
+        firstName: string
+        lastName: string
+        email: string
+        phone: string
+        role: string
+        status: string
+        city: { id: string; name: string }
+      }
+    }>('/auth/login', {
+      email: input.email,
+      password: input.password,
+    })
 
-    if (!agent) {
-      throw new Error('Aucun compte ne correspond à cette adresse email.')
+    const agent = mapBackendUserToAgent(result.user)
+    const session: AuthResponse = {
+      agent,
+      token: result.accessToken,
     }
 
-    if (agent.password !== input.password) {
-      throw new Error('Mot de passe incorrect.')
-    }
-
-    if (agent.status === UserStatus.PENDING) {
-      throw new Error('Votre compte est en attente de validation.')
-    }
-
-    if (agent.status === UserStatus.BLOCKED) {
-      throw new Error('Votre compte a été bloqué. Veuillez contacter l\'administrateur.')
-    }
-
-    if (agent.status === UserStatus.REFUSED) {
-      throw new Error('Votre demande de compte a été refusée.')
-    }
-
-    const token = generateDemoToken(agent.id)
-    const session: AuthResponse = { agent, token }
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 
     return session
   },
 
   async register(input: RegisterAgentInput): Promise<Agent> {
-    const existingByEmail = await agentService.getByEmail(input.email)
-    if (existingByEmail) {
-      throw new Error('Un agent avec cet email existe déjà')
-    }
+    const result = await api.post<{
+      id: string
+      firstName: string
+      lastName: string
+      email: string
+      phone: string
+      role: string
+      status: string
+      city: { id: string; name: string }
+    }>('/auth/register', {
+      firstName: input.firstName,
+      lastName: input.lastName,
+      email: input.email,
+      phone: input.phone,
+      password: input.password,
+      cityId: input.cityId,
+    })
 
-    const existingByPhone = await agentService.getByPhone(input.phone)
-    if (existingByPhone) {
-      throw new Error('Un agent avec ce numéro de téléphone existe déjà')
-    }
-
-    const payload: CreateAgentInput = {
-      ...input,
-      role: UserRole.AGENT,
-      status: UserStatus.PENDING,
-    }
-
-    return agentService.create(payload)
+    return mapBackendUserToAgent(result)
   },
 
   getCurrentUser(): AuthResponse | null {

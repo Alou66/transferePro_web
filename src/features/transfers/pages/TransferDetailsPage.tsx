@@ -19,7 +19,9 @@ export default function TransferDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paying, setPaying] = useState(false)
-  const [isWithdrawalCodeVisible, setIsWithdrawalCodeVisible] = useState(false)
+  const [withdrawalCode, setWithdrawalCode] = useState<string | null>(null)
+  const [withdrawalCodeLoading, setWithdrawalCodeLoading] = useState(false)
+  const [withdrawalCodeError, setWithdrawalCodeError] = useState<string | null>(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
@@ -65,6 +67,29 @@ export default function TransferDetailsPage() {
     load()
   }, [transferId, user?.id])
 
+  const handleToggleWithdrawalCode = async () => {
+    if (!transfer) return
+
+    if (withdrawalCode !== null) {
+      setWithdrawalCode(null)
+      return
+    }
+
+    setWithdrawalCodeLoading(true)
+    setWithdrawalCodeError(null)
+
+    try {
+      const result = await transferService.getWithdrawalCode(transfer.id)
+      setWithdrawalCode(result.withdrawalCode)
+    } catch (err) {
+      setWithdrawalCodeError(
+        err instanceof Error ? err.message : 'Impossible de récupérer le code de retrait.',
+      )
+    } finally {
+      setWithdrawalCodeLoading(false)
+    }
+  }
+
   const handleVerifyCode = () => {
     if (!transferId || !transfer) return
     if (transfer.destinationAgentId !== user?.id) return
@@ -76,7 +101,7 @@ export default function TransferDetailsPage() {
 
     setPaying(true)
     try {
-      await transferService.markAsPaid(transfer.id, user.id)
+      await transferService.markAsPaid(transfer.id)
       setShowPaymentModal(false)
       navigate(`/agent/transfers/${transfer.id}/payment-success`)
     } catch (err) {
@@ -93,7 +118,7 @@ export default function TransferDetailsPage() {
     setCancelError(null)
 
     try {
-      await transferService.cancel(transfer.id, user.id)
+      await transferService.cancel(transfer.id)
       setTransfer({ ...transfer, status: TransferStatus.CANCELLED })
       setShowCancelModal(false)
     } catch (err) {
@@ -160,14 +185,14 @@ export default function TransferDetailsPage() {
 
           <div className="transfer-details-section">
             <h2>Bénéficiaire</h2>
-            <p><strong>Nom :</strong> {transfer.receiverName}</p>
-            <p><strong>Téléphone :</strong> {transfer.receiverPhone}</p>
+            <p><strong>Nom :</strong> {transfer.recipientName}</p>
+            <p><strong>Téléphone :</strong> {transfer.recipientPhone}</p>
           </div>
 
           <div className="transfer-details-section">
             <h2>Trajet</h2>
-            <p><strong>Origine :</strong> {transfer.originCity}</p>
-            <p><strong>Destination :</strong> {transfer.destinationCity}</p>
+            <p><strong>Origine :</strong> {transfer.originCity?.name ?? ''}</p>
+            <p><strong>Destination :</strong> {transfer.destinationCity?.name ?? ''}</p>
           </div>
 
           <div className="transfer-details-section">
@@ -175,7 +200,7 @@ export default function TransferDetailsPage() {
             <p className="transfer-details-amount">{formatCurrency(transfer.amount)}</p>
             <p className="transfer-details-fee">Frais : {formatCurrency(transfer.fee)}</p>
             <p className="transfer-details-total">
-              Total à recevoir : <strong>{formatCurrency(transfer.totalAmount)}</strong>
+              Total à recevoir : <strong>{formatCurrency(transfer.amount + transfer.fee)}</strong>
             </p>
           </div>
 
@@ -196,16 +221,24 @@ export default function TransferDetailsPage() {
               <h2>Code secret de retrait</h2>
               <div className="withdrawal-code-container">
                 <span className="withdrawal-code-value">
-                  {isWithdrawalCodeVisible ? transfer.withdrawalCode : '••••'}
+                  {withdrawalCode ?? '••••'}
                 </span>
                 <button
                   type="button"
-                  onClick={() => setIsWithdrawalCodeVisible((prev) => !prev)}
+                  onClick={handleToggleWithdrawalCode}
                   className="withdrawal-code-toggle"
+                  disabled={withdrawalCodeLoading}
                 >
-                  {isWithdrawalCodeVisible ? 'Masquer le code' : 'Afficher le code'}
+                  {withdrawalCodeLoading
+                    ? 'Chargement...'
+                    : withdrawalCode !== null
+                      ? 'Masquer le code'
+                      : 'Afficher le code'}
                 </button>
               </div>
+              {withdrawalCodeError && (
+                <p className="withdrawal-code-error">{withdrawalCodeError}</p>
+              )}
               <p className="withdrawal-code-hint">
                 Communiquez ce code uniquement après avoir vérifié l'identité du client.
               </p>
@@ -271,7 +304,7 @@ export default function TransferDetailsPage() {
               <strong>{formatCurrency(transfer.amount)}</strong>
             </p>
             <p className="payment-modal-recipient">
-              à : <strong>{transfer.receiverName}</strong>
+              à : <strong>{transfer.recipientName}</strong>
             </p>
             <p className="payment-modal-warning">⚠ Cette opération est définitive.</p>
             <div className="payment-modal-actions">

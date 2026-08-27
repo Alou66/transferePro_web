@@ -84,10 +84,10 @@ export default function PaymentSuccessPage() {
             <span>Montant remis</span>
             <strong>{formatCurrency(transfer.amount)}</strong>
           </div>
-          <div className="payment-success-row">
-            <span>Bénéficiaire</span>
-            <strong>{transfer.receiverName}</strong>
-          </div>
+            <div className="payment-success-row">
+              <span>Bénéficiaire</span>
+              <strong>{transfer.recipientName}</strong>
+            </div>
           <div className="payment-success-row">
             <span>Statut</span>
             <TransferStatusBadge status={transfer.status} />

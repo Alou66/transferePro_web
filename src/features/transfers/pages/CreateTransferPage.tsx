@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { transferService } from '../services/transferService'
-import { agentService } from '../../agents/services/agentService'
 import { cityService } from '../../cities/services/cityService'
 import type { CityModel } from '../../cities/services/cityService'
 import { calculateTransferFee } from '../utils/calculateTransferFee'
@@ -17,9 +16,9 @@ export default function CreateTransferPage() {
 
   const [senderName, setSenderName] = useState('')
   const [senderPhone, setSenderPhone] = useState('')
-  const [receiverName, setReceiverName] = useState('')
-  const [receiverPhone, setReceiverPhone] = useState('')
-  const [destinationCity, setDestinationCity] = useState('')
+  const [recipientName, setRecipientName] = useState('')
+  const [recipientPhone, setRecipientPhone] = useState('')
+  const [destinationCityId, setDestinationCityId] = useState('')
   const [amount, setAmount] = useState('')
   const [cities, setCities] = useState<CityModel[]>([])
 
@@ -36,21 +35,20 @@ export default function CreateTransferPage() {
   const isFormValid =
     senderName.trim().length >= 2 &&
     senderPhone.trim().length >= 2 &&
-    receiverName.trim().length >= 2 &&
-    receiverPhone.trim().length >= 2 &&
+    recipientName.trim().length >= 2 &&
+    recipientPhone.trim().length >= 2 &&
     hasValidAmount &&
-    destinationCity !== '' &&
-    destinationCity !== user?.city
+    destinationCityId !== ''
 
   const didSetDefaultCity = useRef(false)
 
   useEffect(() => {
     async function loadCities() {
       try {
-        const data = await cityService.getAll()
+        const data = await cityService.getActive()
         setCities(data)
         if (data.length > 0 && !didSetDefaultCity.current) {
-          setDestinationCity(data[0].name)
+          setDestinationCityId(data[0].id)
           didSetDefaultCity.current = true
         }
       } catch {
@@ -71,32 +69,23 @@ export default function CreateTransferPage() {
       return
     }
 
-    if (destinationCity === user.city) {
+    const destinationCity = cities.find((c) => c.id === destinationCityId)
+    if (destinationCity && destinationCity.name === user.city) {
       setError('La ville de destination doit être différente de votre ville.')
-      return
-    }
-
-    const destinationAgent = await agentService.getActiveAgentByCity(destinationCity)
-    if (!destinationAgent) {
-      setError("Aucun agent actif n'est disponible dans cette ville pour le moment.")
       return
     }
 
     setLoading(true)
 
     try {
-      const transfer = await transferService.create(
-        {
-          senderName: senderName.trim(),
-          senderPhone: senderPhone.trim(),
-          receiverName: receiverName.trim(),
-          receiverPhone: receiverPhone.trim(),
-          destinationCity,
-          amount: numericAmount,
-          fee,
-        },
-        user.id,
-      )
+      const transfer = await transferService.create({
+        senderName: senderName.trim(),
+        senderPhone: senderPhone.trim(),
+        recipientName: recipientName.trim(),
+        recipientPhone: recipientPhone.trim(),
+        destinationCityId,
+        amount: numericAmount,
+      })
 
       navigate(`/agent/transfers/${transfer.id}/success`)
     } catch (err) {
@@ -155,24 +144,24 @@ export default function CreateTransferPage() {
           <fieldset className="create-transfer-fieldset">
             <legend className="create-transfer-legend">Informations du bénéficiaire</legend>
             <div className="form-group">
-              <label htmlFor="receiverName">Nom complet du bénéficiaire</label>
+              <label htmlFor="recipientName">Nom complet du bénéficiaire</label>
               <input
-                id="receiverName"
+                id="recipientName"
                 type="text"
-                value={receiverName}
-                onChange={(e) => setReceiverName(e.target.value)}
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
                 required
                 minLength={2}
                 placeholder="Ibrahima Camara"
               />
             </div>
             <div className="form-group">
-              <label htmlFor="receiverPhone">Téléphone du bénéficiaire</label>
+              <label htmlFor="recipientPhone">Téléphone du bénéficiaire</label>
               <input
-                id="receiverPhone"
+                id="recipientPhone"
                 type="tel"
-                value={receiverPhone}
-                onChange={(e) => setReceiverPhone(e.target.value)}
+                value={recipientPhone}
+                onChange={(e) => setRecipientPhone(e.target.value)}
                 required
                 minLength={2}
                 placeholder="620 123 456"
@@ -193,18 +182,18 @@ export default function CreateTransferPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="destinationCity">Ville de destination</label>
+              <label htmlFor="destinationCityId">Ville de destination</label>
               {citiesLoading ? (
                 <p className="create-transfer-cities-loading">Chargement des villes...</p>
               ) : (
                 <select
-                  id="destinationCity"
-                  value={destinationCity}
-                  onChange={(e) => setDestinationCity(e.target.value)}
+                  id="destinationCityId"
+                  value={destinationCityId}
+                  onChange={(e) => setDestinationCityId(e.target.value)}
                   required
                 >
                   {cities.map((city) => (
-                    <option key={city.id} value={city.name}>
+                    <option key={city.id} value={city.id}>
                       {city.name}
                     </option>
                   ))}

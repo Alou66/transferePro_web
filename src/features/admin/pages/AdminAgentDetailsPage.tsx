@@ -113,7 +113,7 @@ export default function AdminAgentDetailsPage() {
       setStatsLoading(true)
       try {
         const [transfers, period] = await Promise.all([
-          transferService.getAllForAgent(agentId),
+          transferService.getByAgentForAdmin(agentId),
           getCurrentCollectionPeriod(agentId),
         ])
         const stats = calculateAgentStats(transfers, agentId, period.startDate ?? undefined)
@@ -140,19 +140,6 @@ export default function AdminAgentDetailsPage() {
           .slice()
           .sort((a, b) => new Date(b.collectedAt).getTime() - new Date(a.collectedAt).getTime())
 
-        const creatorIds = Array.from(new Set(sorted.map((c) => c.createdBy).filter(Boolean)))
-        const creatorMap = new Map<string, string>()
-        await Promise.all(
-          creatorIds.map(async (id) => {
-            try {
-              const admin = await agentService.getById(id)
-              creatorMap.set(id, `${admin.firstName} ${admin.lastName}`)
-            } catch {
-              creatorMap.set(id, 'Administrateur inconnu')
-            }
-          }),
-        )
-
         const rows: CollectionRow[] = sorted.map((c) => ({
           id: c.id,
           amount: c.amount,
@@ -160,7 +147,7 @@ export default function AdminAgentDetailsPage() {
           createdBy: c.createdBy,
           notes: c.notes,
           createdAt: c.createdAt,
-          creatorName: creatorMap.get(c.createdBy) || 'Administrateur inconnu',
+          creatorName: c.admin ? `${c.admin.firstName} ${c.admin.lastName}` : 'Administrateur inconnu',
         }))
 
         setCollections(rows)
@@ -225,9 +212,9 @@ export default function AdminAgentDetailsPage() {
       setSuccessMessage(`Récupération de ${formatCurrency(amount)} enregistrée avec succès.`)
 
       const [transfers, updatedPeriod] = await Promise.all([
-        transferService.getAllForAgent(agentId),
-        getCurrentCollectionPeriod(agentId),
-      ])
+          transferService.getByAgentForAdmin(agentId),
+          getCurrentCollectionPeriod(agentId),
+        ])
       const updatedStats = calculateAgentStats(transfers, agentId, updatedPeriod.startDate ?? undefined)
       setAgentStats(updatedStats)
       setCollectionPeriod(updatedPeriod)
@@ -244,7 +231,7 @@ export default function AdminAgentDetailsPage() {
             createdBy: c.createdBy,
             notes: c.notes,
             createdAt: c.createdAt,
-            creatorName: c.createdBy === adminUser?.id ? `${adminUser.firstName} ${adminUser.lastName}` : 'Administrateur inconnu',
+            creatorName: c.admin ? `${c.admin.firstName} ${c.admin.lastName}` : 'Administrateur inconnu',
           })),
       )
     } catch (err) {

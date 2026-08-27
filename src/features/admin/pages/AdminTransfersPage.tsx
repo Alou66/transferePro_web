@@ -19,9 +19,14 @@ const CITY_FILTER_OPTIONS = [
   { value: 'ALL', label: 'Toutes les villes' },
 ]
 
+const PAGE_SIZE = 20
+
 export default function AdminTransfersPage() {
   const navigate = useNavigate()
   const [transfers, setTransfers] = useState<Transfer[]>([])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -34,15 +39,17 @@ export default function AdminTransfersPage() {
     setError(null)
 
     try {
-      const data = await transferService.getAll()
-      setTransfers(data)
+      const result = await transferService.getAll(page, PAGE_SIZE)
+      setTransfers(result.items)
+      setTotalPages(result.pagination.totalPages)
+      setTotal(result.pagination.total)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger les transferts.')
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [page])
 
   useEffect(() => {
     // oxlint-disable-next-line react-hooks/set-state-in-effect
@@ -63,18 +70,18 @@ export default function AdminTransfersPage() {
     }
 
     if (cityFilter !== 'ALL') {
-      result = result.filter((t) => t.destinationCity === cityFilter)
+      result = result.filter((t) => t.destinationCity?.name === cityFilter)
     }
 
     if (search.trim()) {
       const query = search.trim().toLowerCase()
       result = result.filter((t) => {
         const fullSender = `${t.senderName} ${t.senderPhone}`.toLowerCase()
-        const fullReceiver = `${t.receiverName} ${t.receiverPhone}`.toLowerCase()
+        const fullReceiver = `${t.recipientName} ${t.recipientPhone}`.toLowerCase()
         return (
           t.reference.toLowerCase().includes(query) ||
           t.senderName.toLowerCase().includes(query) ||
-          t.receiverName.toLowerCase().includes(query) ||
+          t.recipientName.toLowerCase().includes(query) ||
           fullSender.includes(query) ||
           fullReceiver.includes(query)
         )
@@ -87,6 +94,14 @@ export default function AdminTransfersPage() {
   const handleRefresh = () => {
     setRefreshing(true)
     loadData()
+  }
+
+  const handlePreviousPage = () => {
+    setPage((current) => Math.max(1, current - 1))
+  }
+
+  const handleNextPage = () => {
+    setPage((current) => Math.min(totalPages, current + 1))
   }
 
   if (loading) {
@@ -119,7 +134,7 @@ export default function AdminTransfersPage() {
         <div>
           <h1>Gestion des transferts</h1>
           <p className="admin-transfers-subtitle">
-            {transfers.length} transfert{transfers.length !== 1 ? 's' : ''} au total
+            {total} transfert{total !== 1 ? 's' : ''} au total
           </p>
         </div>
         <button
@@ -188,13 +203,13 @@ export default function AdminTransfersPage() {
 
                 <div className="admin-transfer-section">
                   <span className="admin-transfer-section-label">Bénéficiaire</span>
-                  <p className="admin-transfer-section-value">{transfer.receiverName}</p>
+                  <p className="admin-transfer-section-value">{transfer.recipientName}</p>
                 </div>
 
                 <div className="admin-transfer-section">
                   <span className="admin-transfer-section-label">Trajet</span>
                   <p className="admin-transfer-section-value">
-                    {transfer.originCity} → {transfer.destinationCity}
+                    {transfer.originCity?.name ?? ''} → {transfer.destinationCity?.name ?? ''}
                   </p>
                 </div>
               </div>
@@ -219,6 +234,28 @@ export default function AdminTransfersPage() {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="admin-transfers-pagination">
+          <button
+            onClick={handlePreviousPage}
+            disabled={page <= 1}
+            className="admin-pagination-button"
+          >
+            Précédent
+          </button>
+          <span className="admin-pagination-status">
+            Page {page} / {totalPages}
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={page >= totalPages}
+            className="admin-pagination-button"
+          >
+            Suivant
+          </button>
         </div>
       )}
     </div>

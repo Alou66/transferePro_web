@@ -10,9 +10,8 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: apiUrl === '/api' ? 'http://localhost:3001' : apiUrl,
+          target: apiUrl === '/api' ? 'http://localhost:3000' : apiUrl,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },

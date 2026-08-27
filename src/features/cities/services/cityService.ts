@@ -1,5 +1,4 @@
 import { api } from '../../../services/api'
-import type { City } from '../../../types/index'
 import { UserRole, UserStatus } from '../../../types/index'
 
 export interface CityModel {
@@ -21,6 +20,10 @@ export interface CityUpdateInput {
 export async function getAll(): Promise<CityModel[]> {
   const data = await api.get<CityModel[]>('/cities')
   return data.sort((a: CityModel, b: CityModel) => a.name.localeCompare(b.name))
+}
+
+export async function getActive(): Promise<CityModel[]> {
+  return api.get<CityModel[]>('/cities/active')
 }
 
 export async function getById(id: string): Promise<CityModel> {
@@ -71,14 +74,14 @@ export async function update(id: string, input: CityUpdateInput): Promise<CityMo
 }
 
 export async function activate(id: string): Promise<CityModel> {
-  return api.patch<CityModel>('/cities', id, { isActive: true })
+  return api.patch<CityModel>(`/cities/${id}/activate`, undefined, {})
 }
 
 export async function deactivate(id: string): Promise<CityModel> {
   const city = await getById(id)
   const agents = await api.get<{
     id: string
-    city: City
+    city: { id: string; name: string }
     role: string
     status: string
   }[]>('/agents')
@@ -87,7 +90,7 @@ export async function deactivate(id: string): Promise<CityModel> {
     (agent) =>
       agent.role === UserRole.AGENT &&
       agent.status === UserStatus.ACTIVE &&
-      agent.city.toLowerCase() === city.name.toLowerCase(),
+      agent.city?.name?.toLowerCase() === city.name.toLowerCase(),
   )
 
   if (hasActiveAgent) {
@@ -96,34 +99,16 @@ export async function deactivate(id: string): Promise<CityModel> {
     )
   }
 
-  return api.patch<CityModel>('/cities', id, { isActive: false })
+  return api.patch<CityModel>(`/cities/${id}/deactivate`, undefined, {})
 }
 
 export async function getAvailableForRegistration(): Promise<CityModel[]> {
-  const cities = await getAll()
-  const agents = await api.get<{
-    id: string
-    city: City
-    role: string
-    status: string
-  }[]>('/agents')
-
-  return cities.filter((city: CityModel) => {
-    if (!city.isActive) return false
-
-    const hasActiveAgent = agents.some(
-      (agent: { id: string; city: City; role: string; status: string }) =>
-        agent.role === UserRole.AGENT &&
-        agent.status === UserStatus.ACTIVE &&
-        agent.city.toLowerCase() === city.name.toLowerCase(),
-    )
-
-    return !hasActiveAgent
-  })
+  return api.get<CityModel[]>('/cities/available-for-registration')
 }
 
 export const cityService = {
   getAll,
+  getActive,
   getById,
   create,
   update,

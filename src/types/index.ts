@@ -45,16 +45,23 @@ export interface Transfer {
   reference: string
   senderName: string
   senderPhone: string
-  receiverName: string
-  receiverPhone: string
+  recipientName: string
+  recipientPhone: string
   originAgentId: string
   destinationAgentId: string
-  originCity: City
-  destinationCity: City
+  originCity: {
+    id: string
+    name: string
+  }
+  destinationCity: {
+    id: string
+    name: string
+  }
   amount: number
   fee: number
-  totalAmount: number
-  withdrawalCode: string
+  // Présent uniquement dans la réponse de création (transferService.create) :
+  // le back ne le renvoie plus dans les listes/détails, voir GET /transfers/:id/withdrawal-code.
+  withdrawalCode?: string
   status: TransferStatus
   createdAt: string
   updatedAt: string
@@ -79,7 +86,7 @@ export interface RegisterAgentInput {
   phone: string
   email: string
   password: string
-  city: City
+  cityId: string
 }
 
 export interface LoginInput {
@@ -90,17 +97,20 @@ export interface LoginInput {
 export interface CreateTransferInput {
   senderName: string
   senderPhone: string
-  receiverName: string
-  receiverPhone: string
-  destinationCity: City
+  recipientName: string
+  recipientPhone: string
+  destinationCityId: string
   amount: number
-  fee: number
 }
 
-export interface UpdateTransferStatusInput {
-  status: TransferStatus
-  paidAt?: string | null
-  paidByAgentId?: string | null
+export interface PaginatedResponse<T> {
+  items: T[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
 }
 
 export interface CashCollection {
@@ -111,6 +121,13 @@ export interface CashCollection {
   createdBy: string
   notes?: string
   createdAt: string
+  admin?: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+  }
 }
 
 export interface AuthResponse {

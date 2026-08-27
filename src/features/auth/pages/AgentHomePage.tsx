@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { transferService } from '../../transfers/services/transferService'
 import { TransferStatus, type Transfer } from '../../../types/index'
-import { calculateAgentStats, getActivePeriodStart, getCurrentCollectionPeriod } from '../../transfers/utils/agentStatsUtils'
+import { calculateAgentStats, getCurrentCollectionPeriod } from '../../transfers/utils/agentStatsUtils'
 import TransferStatusBadge from '../../transfers/components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -11,7 +11,7 @@ import './AgentDashboard.css'
 interface RecentActivity {
   id: string
   reference: string
-  receiverName: string
+  recipientName: string
   destinationCity: string
   amount: number
   status: TransferStatus
@@ -35,13 +35,12 @@ export default function AgentHomePage() {
     setError(null)
 
     try {
-      const all = await transferService.getAllForAgent(user.id)
+      const [all, period] = await Promise.all([
+        transferService.getAllForAgent(),
+        getCurrentCollectionPeriod(user.id),
+      ])
       setAllTransfers(all)
-
-      const periodStart = await getActivePeriodStart(user.id)
-      setActiveFrom(periodStart)
-
-      const period = await getCurrentCollectionPeriod(user.id)
+      setActiveFrom(period.startDate)
       setCollectionPeriod(period)
 
       const activity: RecentActivity[] = all.slice(0, 5).map((transfer) => {
@@ -54,8 +53,8 @@ export default function AgentHomePage() {
         return {
           id: transfer.id,
           reference: transfer.reference,
-          receiverName: transfer.receiverName,
-          destinationCity: transfer.destinationCity,
+          recipientName: transfer.recipientName,
+          destinationCity: transfer.destinationCity?.name ?? '',
           amount: transfer.amount,
           status: transfer.status,
           createdAt: transfer.createdAt,
@@ -105,11 +104,6 @@ export default function AgentHomePage() {
       operationalBalance: agentStats.operationalBalance,
     }
   }, [allTransfers, user, activeFrom])
-
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  }, [loadData])
 
   if (loading) {
     return (
@@ -203,7 +197,7 @@ export default function AgentHomePage() {
                 <div className="activity-body">
                   <p className="activity-label">{item.label}</p>
                   <p className="activity-details">
-                    Vers {item.receiverName} — {item.destinationCity}
+                    Vers {item.recipientName} — {item.destinationCity}
                   </p>
                   <p className="activity-amount">{formatCurrency(item.amount)}</p>
                   <p className="activity-date">{formatDate(item.createdAt)}</p>

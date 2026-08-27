@@ -8,10 +8,15 @@ import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
 import './IncomingTransfersPage.css'
 
+const PAGE_SIZE = 20
+const PENDING_STATUSES = [TransferStatus.CREATED, TransferStatus.READY_FOR_PAYMENT]
+
 export default function IncomingTransfersPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [transfers, setTransfers] = useState<Transfer[]>([])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -23,24 +28,17 @@ export default function IncomingTransfersPage() {
     setError(null)
 
     try {
-      const allIncoming = await transferService.getIncomingForAgent(user.id)
+      const result = await transferService.getIncomingForAgent(page, PAGE_SIZE, PENDING_STATUSES)
 
-      const filtered = allIncoming
-        .filter(
-          (t) =>
-            t.status === TransferStatus.CREATED ||
-            t.status === TransferStatus.READY_FOR_PAYMENT,
-        )
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-
-      setTransfers(filtered)
+      setTransfers(result.items)
+      setTotalPages(result.pagination.totalPages)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger les transferts entrants.')
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [user])
+  }, [user, page])
 
   useEffect(() => {
     // oxlint-disable-next-line react-hooks/set-state-in-effect
@@ -54,6 +52,14 @@ export default function IncomingTransfersPage() {
 
   const handleRetry = () => {
     loadData()
+  }
+
+  const handlePreviousPage = () => {
+    setPage((current) => Math.max(1, current - 1))
+  }
+
+  const handleNextPage = () => {
+    setPage((current) => Math.min(totalPages, current + 1))
   }
 
   if (loading) {
@@ -130,13 +136,13 @@ export default function IncomingTransfersPage() {
                   <p className="incoming-route">
                     <span className="incoming-name">{transfer.senderName}</span>
                     <span className="incoming-arrow">→</span>
-                    <span className="incoming-name">{transfer.receiverName}</span>
+                    <span className="incoming-name">{transfer.recipientName}</span>
                   </p>
 
                   <p className="incoming-traject">
                     <span className="incoming-traject-icon">📍</span>
                     <span className="incoming-traject-text">
-                      {transfer.originCity} → {transfer.destinationCity}
+                      {transfer.originCity?.name ?? ''} → {transfer.destinationCity?.name ?? ''}
                     </span>
                   </p>
 
@@ -161,6 +167,28 @@ export default function IncomingTransfersPage() {
               </div>
             </button>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="incoming-pagination">
+          <button
+            onClick={handlePreviousPage}
+            disabled={page <= 1}
+            className="incoming-pagination-button"
+          >
+            Précédent
+          </button>
+          <span className="incoming-pagination-status">
+            Page {page} / {totalPages}
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={page >= totalPages}
+            className="incoming-pagination-button"
+          >
+            Suivant
+          </button>
         </div>
       )}
     </div>
