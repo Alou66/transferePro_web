@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { agentService } from '../../agents/services/agentService'
-import { cityService } from '../../cities/services/cityService'
-import type { CityModel } from '../../cities/services/cityService'
+import { useAgents } from '../../agents/hooks/useAgents'
+import { useCities } from '../../cities/hooks/useCities'
 import { UserRole, UserStatus } from '../../../types/index'
 import { formatDate } from '../../../shared/utils/formatDate'
 import './AdminAgentsPage.css'
@@ -30,39 +29,34 @@ interface AgentRow {
 
 export default function AdminAgentsPage() {
   const navigate = useNavigate()
-  const [agents, setAgents] = useState<AgentRow[]>([])
-  const [cities, setCities] = useState<CityModel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
   const [cityFilter, setCityFilter] = useState<string>('ALL')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const {
+    data: agentsData = [],
+    isLoading: agentsLoading,
+    isFetching: agentsFetching,
+    error: agentsError,
+    refetch: refetchAgents,
+  } = useAgents()
+  const {
+    data: cities = [],
+    isLoading: citiesLoading,
+    isFetching: citiesFetching,
+    error: citiesError,
+    refetch: refetchCities,
+  } = useCities()
 
-    try {
-      const [agentsData, citiesData] = await Promise.all([
-        agentService.getAll(),
-        cityService.getAll(),
-      ])
-      const agentsOnly = agentsData.filter((a) => a.role === UserRole.AGENT)
-      setAgents(agentsOnly)
-      setCities(citiesData)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les agents.')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
+  const agents: AgentRow[] = agentsData.filter((a) => a.role === UserRole.AGENT)
+  const loading = agentsLoading || citiesLoading
+  const refreshing = (agentsFetching || citiesFetching) && !loading
+  const error = agentsError || citiesError ? 'Impossible de charger les agents.' : null
 
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  }, [loadData])
+  const loadData = () => {
+    refetchAgents()
+    refetchCities()
+  }
 
   const pendingCount = agents.filter((a) => a.status === UserStatus.PENDING).length
 
@@ -86,7 +80,6 @@ export default function AdminAgentsPage() {
   })
 
   const handleRefresh = () => {
-    setRefreshing(true)
     loadData()
   }
 

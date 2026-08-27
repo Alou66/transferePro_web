@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { agentService } from '../../agents/services/agentService'
+import { useAgent, useUpdateAgentStatus } from '../../agents/hooks/useAgents'
 import { transferService } from '../../transfers/services/transferService'
 import { calculateAgentStats, getCurrentCollectionPeriod } from '../../transfers/utils/agentStatsUtils'
 import { create as createCashCollection, getByAgentId } from '../../transfers/services/cashCollectionService'
@@ -19,19 +19,6 @@ interface CollectionRow {
   notes?: string
   createdAt: string
   creatorName?: string
-}
-
-interface AgentRow {
-  id: string
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  city: string
-  role: UserRole
-  status: UserStatus
-  createdAt: string
-  updatedAt: string
 }
 
 interface AgentStats {
@@ -52,10 +39,10 @@ interface CollectionPeriod {
 export default function AdminAgentDetailsPage() {
   const { agentId } = useParams<{ agentId: string }>()
   const { user: adminUser } = useAuth()
-  const [agent, setAgent] = useState<AgentRow | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [actionLoading, setActionLoading] = useState(false)
+  const { data: agent, isLoading: loading, isError: agentFailed } = useAgent(agentId)
+  const updateAgentStatus = useUpdateAgentStatus()
+  const actionLoading = updateAgentStatus.isPending
+  const error = !agentId || agentFailed ? 'Agent introuvable.' : null
   const [actionError, setActionError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [confirmAction, setConfirmAction] = useState<{
@@ -73,27 +60,6 @@ export default function AdminAgentDetailsPage() {
   const [collectionNotes, setCollectionNotes] = useState('')
   const [collecting, setCollecting] = useState(false)
   const [collectError, setCollectError] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function load() {
-      if (!agentId) {
-        setError('Agent introuvable.')
-        setLoading(false)
-        return
-      }
-
-      try {
-        const data = await agentService.getById(agentId)
-        setAgent(data)
-      } catch {
-        setError('Agent introuvable.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [agentId])
 
   useEffect(() => {
     if (showCollectionModal || confirmAction) {
@@ -164,19 +130,15 @@ export default function AdminAgentDetailsPage() {
   const handleStatusChange = async () => {
     if (!agent || !confirmAction) return
 
-    setActionLoading(true)
     setActionError(null)
     setSuccessMessage(null)
 
     try {
-      const updated = await agentService.updateStatus(agent.id, confirmAction.status)
-      setAgent(updated)
+      await updateAgentStatus.mutateAsync({ id: agent.id, status: confirmAction.status })
       setSuccessMessage(`Statut mis à jour vers "${getStatusLabel(confirmAction.status)}" avec succès.`)
       setConfirmAction(null)
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la mise à jour.')
-    } finally {
-      setActionLoading(false)
     }
   }
 

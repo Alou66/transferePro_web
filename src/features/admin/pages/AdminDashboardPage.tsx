@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { agentService } from '../../agents/services/agentService'
+import { useAgents } from '../../agents/hooks/useAgents'
 import { transferService } from '../../transfers/services/transferService'
 import { UserRole, UserStatus, TransferStatus, type Agent, type Transfer } from '../../../types/index'
 import TransferStatusBadge from '../../transfers/components/TransferStatusBadge'
@@ -37,35 +37,52 @@ interface RecentTransfer {
 
 export default function AdminDashboardPage() {
   const { user } = useAuth()
-  const [agents, setAgents] = useState<Agent[]>([])
+  const {
+    data: agents = [],
+    isLoading: agentsLoading,
+    isFetching: agentsFetching,
+    error: agentsError,
+    refetch: refetchAgents,
+  } = useAgents()
   const [transfers, setTransfers] = useState<Transfer[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
+  const [transfersLoading, setTransfersLoading] = useState(true)
+  const [transfersFetching, setTransfersFetching] = useState(false)
+  const [transfersError, setTransfersError] = useState<string | null>(null)
 
-  const loadData = async () => {
-    setLoading(true)
-    setError(null)
+  const loadTransfers = async () => {
+    setTransfersFetching(true)
+    setTransfersError(null)
 
     try {
-      const [agentsData, transfersData] = await Promise.all([
-        agentService.getAll(),
-        transferService.getAllExhaustive(),
-      ])
-      setAgents(agentsData)
+      const transfersData = await transferService.getAllExhaustive()
       setTransfers(transfersData)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les données du tableau de bord.')
+      setTransfersError(err instanceof Error ? err.message : 'Impossible de charger les données du tableau de bord.')
     } finally {
-      setLoading(false)
-      setRefreshing(false)
+      setTransfersLoading(false)
+      setTransfersFetching(false)
     }
   }
 
   useEffect(() => {
     // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
+    loadTransfers()
   }, [])
+
+  const loading = agentsLoading || transfersLoading
+  const refreshing = (agentsFetching || transfersFetching) && !loading
+  const error = agentsError
+    ? 'Impossible de charger les données du tableau de bord.'
+    : transfersError
+
+  const loadData = () => {
+    refetchAgents()
+    loadTransfers()
+  }
+
+  const handleRefresh = () => {
+    loadData()
+  }
 
   const agentStats = useMemo<AgentStats>(() => {
     const agentsOnly = agents.filter((a) => a.role === UserRole.AGENT)
@@ -130,11 +147,6 @@ export default function AdminDashboardPage() {
       case TransferStatus.CANCELLED:
         return 'Transfert annulé'
     }
-  }
-
-  const handleRefresh = () => {
-    setRefreshing(true)
-    loadData()
   }
 
   if (loading) {
