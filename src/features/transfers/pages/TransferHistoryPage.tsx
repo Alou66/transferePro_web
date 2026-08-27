@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { transferService } from '../services/transferService'
 import type { Transfer } from '../../../types/index'
 import { TransferStatus } from '../../../types/index'
-import { calculateAgentStats, getActivePeriodStart } from '../utils/agentStatsUtils'
+import { useAgentStatistics } from '../../agents/hooks/useAgents'
 import TransferStatusBadge from '../components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -38,7 +38,6 @@ export default function TransferHistoryPage() {
   const [typeFilter, setTypeFilter] = useState<TransferType>('ALL')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [search, setSearch] = useState('')
-  const [activeFrom, setActiveFrom] = useState<string | null>(null)
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
@@ -50,12 +49,8 @@ export default function TransferHistoryPage() {
     setError(null)
 
     try {
-      const [data, periodStart] = await Promise.all([
-        transferService.getAllForAgent(),
-        getActivePeriodStart(user.id),
-      ])
+      const data = await transferService.getAllForAgent()
       setAllTransfers(data)
-      setActiveFrom(periodStart)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger l\'historique des transferts.')
     } finally {
@@ -68,6 +63,13 @@ export default function TransferHistoryPage() {
     // oxlint-disable-next-line react-hooks/set-state-in-effect
     loadData()
   }, [loadData])
+
+  const {
+    data: statistics,
+    isLoading: statsLoading,
+    isError: statsFailed,
+    refetch: refetchStatistics,
+  } = useAgentStatistics(user?.id)
 
   const getTransferType = useCallback((transfer: Transfer): TransferType => {
     if (transfer.paidByAgentId === user?.id && transfer.status === TransferStatus.PAID) {
@@ -109,24 +111,17 @@ export default function TransferHistoryPage() {
 
   const stats = useMemo(() => {
     if (!user) {
-      return {
-        total: 0,
-        sent: 0,
-        paid: 0,
-        totalCollected: 0,
-      }
+      return { total: 0, sent: 0, paid: 0 }
     }
     const sent = allTransfers.filter((t) => t.originAgentId === user.id)
     const paid = allTransfers.filter((t) => t.paidByAgentId === user.id && t.status === TransferStatus.PAID)
-    const agentStats = calculateAgentStats(allTransfers, user.id, activeFrom ?? undefined)
 
     return {
       total: allTransfers.length,
       sent: sent.length,
       paid: paid.length,
-      totalCollected: agentStats.totalCollected,
     }
-  }, [allTransfers, user, activeFrom])
+  }, [allTransfers, user])
 
   const handleRefresh = () => {
     setRefreshing(true)
@@ -154,7 +149,7 @@ export default function TransferHistoryPage() {
     }
   }
 
-  if (loading) {
+  if (loading || statsLoading) {
     return (
       <div className="history-page">
         <div className="history-header">
@@ -168,15 +163,21 @@ export default function TransferHistoryPage() {
     )
   }
 
-  if (error) {
+  if (error || statsFailed) {
     return (
       <div className="history-page">
         <div className="history-header">
           <h1>Historique des transferts</h1>
         </div>
         <div className="history-error">
-          <p>{error}</p>
-          <button onClick={loadData} className="history-retry-button">
+          <p>{error ?? 'Impossible de charger les statistiques financières.'}</p>
+          <button
+            onClick={() => {
+              loadData()
+              refetchStatistics()
+            }}
+            className="history-retry-button"
+          >
             Réessayer
           </button>
         </div>
@@ -216,7 +217,7 @@ export default function TransferHistoryPage() {
           <span className="history-stat-label">Payés</span>
         </div>
         <div className="history-stat-card">
-          <span className="history-stat-value">{formatCurrency(stats.totalCollected)}</span>
+          <span className="history-stat-value">{formatCurrency(statistics?.financial.totalCreated ?? 0)}</span>
           <span className="history-stat-label">Montant total encaissé</span>
         </div>
       </div>

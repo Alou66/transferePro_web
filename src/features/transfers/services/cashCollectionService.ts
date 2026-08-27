@@ -31,20 +31,6 @@ export async function getByAgentId(agentId: string): Promise<CashCollection[]> {
   return items
 }
 
-export async function getLastCollectionForAgent(agentId: string): Promise<CashCollection | null> {
-  const collections = await getByAgentId(agentId)
-
-  if (collections.length === 0) {
-    return null
-  }
-
-  return collections.reduce((latest, current) => {
-    return new Date(current.collectedAt).getTime() > new Date(latest.collectedAt).getTime()
-      ? current
-      : latest
-  })
-}
-
 export async function create(input: CashCollectionCreateInput): Promise<CashCollection> {
   const now = new Date().toISOString()
   return api.post<CashCollection>(`/agents/${input.agentId}/cash-collections`, {

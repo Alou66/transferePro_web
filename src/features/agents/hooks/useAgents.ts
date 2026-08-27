@@ -8,7 +8,14 @@ export const agentKeys = {
   list: () => [...agentKeys.all, 'list'] as const,
   detail: (id: string) => [...agentKeys.all, 'detail', id] as const,
   pending: () => [...agentKeys.all, 'pending'] as const,
+  statistics: (id: string) => [...agentKeys.all, 'statistics', id] as const,
 }
+
+// Les statistiques financières bougent à chaque transfert/encaissement :
+// staleTime plus court que le défaut global pour rester fiable après une
+// action (paiement, récupération de fonds) sans pour autant re-fetcher à
+// chaque re-render.
+const AGENT_STATISTICS_STALE_TIME = 30_000
 
 export function useAgents() {
   return useQuery({
@@ -22,6 +29,15 @@ export function useAgent(id: string | undefined) {
     queryKey: agentKeys.detail(id ?? ''),
     queryFn: () => agentService.getById(id as string),
     enabled: Boolean(id),
+  })
+}
+
+export function useAgentStatistics(agentId: string | undefined) {
+  return useQuery({
+    queryKey: agentKeys.statistics(agentId ?? ''),
+    queryFn: () => agentService.getStatistics(agentId as string),
+    enabled: Boolean(agentId),
+    staleTime: AGENT_STATISTICS_STALE_TIME,
   })
 }
 

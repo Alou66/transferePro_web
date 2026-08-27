@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { transferService } from '../../transfers/services/transferService'
 import { TransferStatus, type Transfer } from '../../../types/index'
-import { calculateAgentStats, getCurrentCollectionPeriod } from '../../transfers/utils/agentStatsUtils'
+import { useAgentStatistics } from '../../agents/hooks/useAgents'
 import TransferStatusBadge from '../../transfers/components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -25,8 +25,13 @@ export default function AgentHomePage() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeFrom, setActiveFrom] = useState<string | null>(null)
-  const [collectionPeriod, setCollectionPeriod] = useState<Awaited<ReturnType<typeof getCurrentCollectionPeriod>> | null>(null)
+
+  const {
+    data: statistics,
+    isLoading: statsLoading,
+    isError: statsFailed,
+    refetch: refetchStatistics,
+  } = useAgentStatistics(user?.id)
 
   const loadData = useCallback(async () => {
     if (!user) return
@@ -35,13 +40,8 @@ export default function AgentHomePage() {
     setError(null)
 
     try {
-      const [all, period] = await Promise.all([
-        transferService.getAllForAgent(),
-        getCurrentCollectionPeriod(user.id),
-      ])
+      const all = await transferService.getAllForAgent()
       setAllTransfers(all)
-      setActiveFrom(period.startDate)
-      setCollectionPeriod(period)
 
       const activity: RecentActivity[] = all.slice(0, 5).map((transfer) => {
         let label = 'Transfert envoyé'
@@ -77,20 +77,11 @@ export default function AgentHomePage() {
 
   const stats = useMemo(() => {
     if (!user) {
-      return {
-        created: 0,
-        incoming: 0,
-        paid: 0,
-        totalCollected: 0,
-        totalDebited: 0,
-        feesGenerated: 0,
-        operationalBalance: 0,
-      }
+      return { created: 0, incoming: 0, paid: 0 }
     }
     const created = allTransfers.filter((t) => t.originAgentId === user.id)
     const incoming = allTransfers.filter((t) => t.destinationAgentId === user.id)
     const paid = allTransfers.filter((t) => t.paidByAgentId === user.id)
-    const agentStats = calculateAgentStats(allTransfers, user.id, activeFrom ?? undefined)
 
     return {
       created: created.length,
@@ -98,14 +89,12 @@ export default function AgentHomePage() {
         (t) => t.status === TransferStatus.CREATED || t.status === TransferStatus.READY_FOR_PAYMENT,
       ).length,
       paid: paid.length,
-      totalCollected: agentStats.totalCollected,
-      totalDebited: agentStats.totalDebited,
-      feesGenerated: agentStats.feesGenerated,
-      operationalBalance: agentStats.operationalBalance,
     }
-  }, [allTransfers, user, activeFrom])
+  }, [allTransfers, user])
 
-  if (loading) {
+  const isFirstPeriod = statistics ? statistics.period.lastCollectionAt === null : true
+
+  if (loading || statsLoading) {
     return (
       <div className="dashboard-loading">
         <div className="dashboard-loading-spinner" />
@@ -114,11 +103,17 @@ export default function AgentHomePage() {
     )
   }
 
-  if (error) {
+  if (error || statsFailed) {
     return (
       <div className="dashboard-error">
-        <p>{error}</p>
-        <button onClick={loadData} className="dashboard-retry-button">
+        <p>{error ?? 'Impossible de charger les statistiques financières.'}</p>
+        <button
+          onClick={() => {
+            loadData()
+            refetchStatistics()
+          }}
+          className="dashboard-retry-button"
+        >
           Réessayer
         </button>
       </div>
@@ -134,15 +129,15 @@ export default function AgentHomePage() {
       <div className="dashboard-header">
         <h1>Bienvenue, {user.firstName}</h1>
         <p className="dashboard-subtitle">Tableau de bord agent — {user.city}</p>
-        {collectionPeriod && (
+        {statistics && (
           <p className="dashboard-period">
             Période actuelle :{' '}
-            {collectionPeriod.isFirstPeriod
+            {isFirstPeriod
               ? 'depuis le début'
-              : `depuis le ${formatDate(collectionPeriod.startDate!)}`}
+              : `depuis le ${formatDate(statistics.period.startedAt)}`}
           </p>
         )}
-        {collectionPeriod && (
+        {statistics && (
           <p className="dashboard-period-hint">
             Les statistiques financières ci-dessous concernent uniquement la période actuelle.
           </p>
@@ -163,19 +158,19 @@ export default function AgentHomePage() {
           <span className="stat-label">Transferts payés</span>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{formatCurrency(stats.totalCollected)}</span>
+          <span className="stat-value">{formatCurrency(statistics?.financial.totalCreated ?? 0)}</span>
           <span className="stat-label">Montant total encaissé</span>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{formatCurrency(stats.totalDebited)}</span>
+          <span className="stat-value">{formatCurrency(statistics?.financial.totalPaid ?? 0)}</span>
           <span className="stat-label">Montant total décaissé</span>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{formatCurrency(stats.feesGenerated)}</span>
+          <span className="stat-value">{formatCurrency(statistics?.financial.feesGenerated ?? 0)}</span>
           <span className="stat-label">Frais générés</span>
         </div>
         <div className="stat-card stat-card--highlight">
-          <span className="stat-value">{formatCurrency(stats.operationalBalance)}</span>
+          <span className="stat-value">{formatCurrency(statistics?.financial.currentBalance ?? 0)}</span>
           <span className="stat-label">Solde opérationnel</span>
         </div>
       </div>

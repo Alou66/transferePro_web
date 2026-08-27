@@ -10,6 +10,29 @@ import type {
 import { UserRole, UserStatus } from '../../../types/index'
 import { cityService } from '../../cities/services/cityService'
 
+export interface AgentFinancialStatistics {
+  agent: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    city: { id: string; name: string } | null
+  }
+  period: {
+    startedAt: string
+    lastCollectionAt: string | null
+  }
+  financial: {
+    totalCreated: number
+    totalPaid: number
+    totalCollected: number
+    feesGenerated: number
+    currentBalance: number
+    periodStart: string
+  }
+}
+
 function mapAgent(raw: {
   id: string
   firstName: string
@@ -67,6 +90,10 @@ export const agentService = {
       updatedAt?: string
     }>>('/agents')
     return mapAgents(data)
+  },
+
+  async getStatistics(id: string): Promise<AgentFinancialStatistics> {
+    return get<AgentFinancialStatistics>(`/agents/${id}/statistics`)
   },
 
   async getById(id: string): Promise<Agent> {

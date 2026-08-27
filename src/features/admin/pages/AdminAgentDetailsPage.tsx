@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { useAgent, useUpdateAgentStatus } from '../../agents/hooks/useAgents'
-import { transferService } from '../../transfers/services/transferService'
-import { calculateAgentStats, getCurrentCollectionPeriod } from '../../transfers/utils/agentStatsUtils'
+import { useAgent, useUpdateAgentStatus, useAgentStatistics } from '../../agents/hooks/useAgents'
 import { create as createCashCollection, getByAgentId } from '../../transfers/services/cashCollectionService'
 import { UserRole, UserStatus } from '../../../types/index'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
@@ -21,21 +19,6 @@ interface CollectionRow {
   creatorName?: string
 }
 
-interface AgentStats {
-  totalCollected: number
-  totalDebited: number
-  feesGenerated: number
-  operationalBalance: number
-}
-
-interface CollectionPeriod {
-  agentId: string
-  startDate: string | null
-  endDate: string
-  lastCollection: { id: string; amount: number; collectedAt: string; createdBy: string; notes?: string; createdAt: string } | null
-  isFirstPeriod: boolean
-}
-
 export default function AdminAgentDetailsPage() {
   const { agentId } = useParams<{ agentId: string }>()
   const { user: adminUser } = useAuth()
@@ -50,11 +33,22 @@ export default function AdminAgentDetailsPage() {
     label: string
     message: string
   } | null>(null)
-  const [agentStats, setAgentStats] = useState<AgentStats | null>(null)
-  const [collectionPeriod, setCollectionPeriod] = useState<CollectionPeriod | null>(null)
+  const {
+    data: statistics,
+    isLoading: statsLoading,
+    refetch: refetchStatistics,
+  } = useAgentStatistics(agentId)
+  const agentStats = statistics
+    ? {
+        totalCollected: statistics.financial.totalCreated,
+        totalDebited: statistics.financial.totalPaid,
+        feesGenerated: statistics.financial.feesGenerated,
+        operationalBalance: statistics.financial.currentBalance,
+      }
+    : null
+  const isFirstPeriod = statistics ? statistics.period.lastCollectionAt === null : true
   const [collections, setCollections] = useState<CollectionRow[]>([])
   const [collectionsLoading, setCollectionsLoading] = useState(false)
-  const [statsLoading, setStatsLoading] = useState(false)
   const [showCollectionModal, setShowCollectionModal] = useState(false)
   const [collectionAmount, setCollectionAmount] = useState('')
   const [collectionNotes, setCollectionNotes] = useState('')
@@ -71,29 +65,6 @@ export default function AdminAgentDetailsPage() {
       document.body.style.overflow = ''
     }
   }, [showCollectionModal, confirmAction])
-
-  useEffect(() => {
-    async function loadStats() {
-      if (!agentId) return
-
-      setStatsLoading(true)
-      try {
-        const [transfers, period] = await Promise.all([
-          transferService.getByAgentForAdmin(agentId),
-          getCurrentCollectionPeriod(agentId),
-        ])
-        const stats = calculateAgentStats(transfers, agentId, period.startDate ?? undefined)
-        setAgentStats(stats)
-        setCollectionPeriod(period)
-      } catch {
-        // silent fail for stats
-      } finally {
-        setStatsLoading(false)
-      }
-    }
-
-    loadStats()
-  }, [agentId])
 
   useEffect(() => {
     async function loadCollections() {
@@ -173,13 +144,7 @@ export default function AdminAgentDetailsPage() {
       setCollectionNotes('')
       setSuccessMessage(`Récupération de ${formatCurrency(amount)} enregistrée avec succès.`)
 
-      const [transfers, updatedPeriod] = await Promise.all([
-          transferService.getByAgentForAdmin(agentId),
-          getCurrentCollectionPeriod(agentId),
-        ])
-      const updatedStats = calculateAgentStats(transfers, agentId, updatedPeriod.startDate ?? undefined)
-      setAgentStats(updatedStats)
-      setCollectionPeriod(updatedPeriod)
+      await refetchStatistics()
 
       const updatedCollections = await getByAgentId(agentId)
       setCollections(
@@ -338,11 +303,11 @@ export default function AdminAgentDetailsPage() {
             <div className="admin-loading-spinner" />
             <p>Chargement des statistiques...</p>
           </div>
-        ) : agentStats && collectionPeriod ? (
+        ) : agentStats && statistics ? (
           <div className="admin-agent-collection-section">
             <h2>Situation financière actuelle</h2>
             <p className="admin-agent-period">
-              Période : {collectionPeriod.isFirstPeriod ? 'Depuis le début' : `Depuis le ${formatDate(collectionPeriod.startDate!)}`}
+              Période : {isFirstPeriod ? 'Depuis le début' : `Depuis le ${formatDate(statistics.period.startedAt)}`}
             </p>
             <div className="admin-agent-stats-grid">
               <div className="admin-agent-stat-card">
