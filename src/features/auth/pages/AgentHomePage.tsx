@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { transferService } from '../../transfers/services/transferService'
-import { TransferStatus, type Transfer } from '../../../types/index'
+import { useMyTransfers } from '../../transfers/hooks/useTransfers'
+import { TransferStatus } from '../../../types/index'
 import { useAgentStatistics } from '../../agents/hooks/useAgents'
 import TransferStatusBadge from '../../transfers/components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
@@ -21,10 +21,6 @@ interface RecentActivity {
 
 export default function AgentHomePage() {
   const { user } = useAuth()
-  const [allTransfers, setAllTransfers] = useState<Transfer[]>([])
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const {
     data: statistics,
@@ -33,47 +29,37 @@ export default function AgentHomePage() {
     refetch: refetchStatistics,
   } = useAgentStatistics(user?.id)
 
-  const loadData = useCallback(async () => {
-    if (!user) return
+  const {
+    data: allTransfers = [],
+    isLoading: loading,
+    error: queryError,
+    refetch: loadData,
+  } = useMyTransfers()
 
-    setLoading(true)
-    setError(null)
+  const error = queryError ? 'Impossible de charger les données. Veuillez réessayer.' : null
 
-    try {
-      const all = await transferService.getAllForAgent()
-      setAllTransfers(all)
+  const recentActivity: RecentActivity[] = useMemo(() => {
+    if (!user) return []
 
-      const activity: RecentActivity[] = all.slice(0, 5).map((transfer) => {
-        let label = 'Transfert envoyé'
-        if (transfer.paidByAgentId === user.id && transfer.originAgentId !== user.id) {
-          label = 'Paiement effectué'
-        } else if (transfer.destinationAgentId === user.id) {
-          label = 'Transfert entrant'
-        }
-        return {
-          id: transfer.id,
-          reference: transfer.reference,
-          recipientName: transfer.recipientName,
-          destinationCity: transfer.destinationCity?.name ?? '',
-          amount: transfer.amount,
-          status: transfer.status,
-          createdAt: transfer.createdAt,
-          label,
-        }
-      })
-
-      setRecentActivity(activity)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les données. Veuillez réessayer.')
-    } finally {
-      setLoading(false)
-    }
-  }, [user])
-
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  }, [loadData])
+    return allTransfers.slice(0, 5).map((transfer) => {
+      let label = 'Transfert envoyé'
+      if (transfer.paidByAgentId === user.id && transfer.originAgentId !== user.id) {
+        label = 'Paiement effectué'
+      } else if (transfer.destinationAgentId === user.id) {
+        label = 'Transfert entrant'
+      }
+      return {
+        id: transfer.id,
+        reference: transfer.reference,
+        recipientName: transfer.recipientName,
+        destinationCity: transfer.destinationCity?.name ?? '',
+        amount: transfer.amount,
+        status: transfer.status,
+        createdAt: transfer.createdAt,
+        label,
+      }
+    })
+  }, [allTransfers, user])
 
   const stats = useMemo(() => {
     if (!user) {

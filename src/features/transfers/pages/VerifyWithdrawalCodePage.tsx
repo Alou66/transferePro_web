@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { transferService } from '../services/transferService'
-import type { Transfer } from '../../../types/index'
+import { useTransfer, useVerifyWithdrawalCode } from '../hooks/useTransfers'
 import { TransferStatus } from '../../../types/index'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import BackButton from '../../../components/common/BackButton'
@@ -12,58 +11,41 @@ export default function VerifyWithdrawalCodePage() {
   const { transferId } = useParams<{ transferId: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [transfer, setTransfer] = useState<Transfer | null>(null)
+  const { data: transfer, isLoading: loading, isError: transferFailed } = useTransfer(transferId)
+  const verifyCode = useVerifyWithdrawalCode()
   const [code, setCode] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [verifying, setVerifying] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  useEffect(() => {
-    async function load() {
-      if (!transferId) {
-        setError('Transfert introuvable.')
-        setLoading(false)
-        return
-      }
+  const verifying = verifyCode.isPending
 
-      try {
-        const data = await transferService.getById(transferId)
-        setTransfer(data)
+  const loadError =
+    transferFailed || !transferId
+      ? 'Transfert introuvable.'
+      : transfer && transfer.destinationAgentId !== user?.id
+        ? "Vous n'êtes pas autorisé à vérifier ce transfert."
+        : transfer && transfer.status !== TransferStatus.CREATED
+          ? 'Ce transfert ne peut plus être vérifié.'
+          : null
 
-        if (data.destinationAgentId !== user?.id) {
-          setError("Vous n'êtes pas autorisé à vérifier ce transfert.")
-        } else if (data.status !== TransferStatus.CREATED) {
-          setError('Ce transfert ne peut plus être vérifié.')
-        }
-      } catch {
-        setError('Transfert introuvable.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [transferId, user?.id])
+  const error = submitError ?? loadError
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
+    setSubmitError(null)
 
     if (!transfer || !code) {
-      setError('Veuillez saisir le code de retrait.')
+      setSubmitError('Veuillez saisir le code de retrait.')
       return
     }
 
     if (!/^\d{4}$/.test(code)) {
-      setError('Le code doit contenir exactement 4 chiffres.')
+      setSubmitError('Le code doit contenir exactement 4 chiffres.')
       return
     }
 
-    setVerifying(true)
-
     try {
-      await transferService.verifyWithdrawalCode(transfer.id, code)
+      await verifyCode.mutateAsync({ id: transfer.id, code })
 
       setSuccess(true)
       setTimeout(() => {
@@ -72,9 +54,7 @@ export default function VerifyWithdrawalCodePage() {
         }
       }, 1500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la vérification.')
-    } finally {
-      setVerifying(false)
+      setSubmitError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la vérification.')
     }
   }
 

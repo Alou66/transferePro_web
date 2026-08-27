@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { agentService } from '../../agents/services/agentService'
-import { transferService } from '../../transfers/services/transferService'
-import { cityService } from '../../cities/services/cityService'
-import type { Agent, Transfer } from '../../../types/index'
+import { useState, useEffect, useMemo } from 'react'
+import { useAgents } from '../../agents/hooks/useAgents'
+import { useAllTransfersExhaustive } from '../../transfers/hooks/useTransfers'
+import { useCities } from '../../cities/hooks/useCities'
 import { UserRole } from '../../../types/index'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import {
@@ -32,12 +31,42 @@ const PERIOD_PRESETS: { value: PeriodPreset; label: string }[] = [
 ]
 
 export default function AdminFinancialStatisticsPage() {
-  const [agents, setAgents] = useState<Agent[]>([])
-  const [transfers, setTransfers] = useState<Transfer[]>([])
-  const [cities, setCities] = useState<Agent['city'][]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
+  const {
+    data: agentsData = [],
+    isLoading: agentsLoading,
+    isFetching: agentsFetching,
+    error: agentsError,
+    refetch: refetchAgents,
+  } = useAgents()
+  const {
+    data: transfers = [],
+    isLoading: transfersLoading,
+    isFetching: transfersFetching,
+    error: transfersError,
+    refetch: refetchTransfers,
+  } = useAllTransfersExhaustive()
+  const {
+    data: citiesData = [],
+    isLoading: citiesLoading,
+    isFetching: citiesFetching,
+    error: citiesError,
+    refetch: refetchCities,
+  } = useCities()
+
+  const agents = useMemo(() => agentsData.filter((a) => a.role === UserRole.AGENT), [agentsData])
+  const cities = useMemo(() => citiesData.map((c) => c.name), [citiesData])
+  const loading = agentsLoading || transfersLoading || citiesLoading
+  const refreshing = (agentsFetching || transfersFetching || citiesFetching) && !loading
+  const error = agentsError || transfersError || citiesError
+    ? 'Impossible de charger les statistiques financières.'
+    : null
+
+  const loadData = () => {
+    refetchAgents()
+    refetchTransfers()
+    refetchCities()
+  }
+
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('30days')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -77,32 +106,6 @@ export default function AdminFinancialStatisticsPage() {
   }, [startDate, endDate])
   /* oxlint-enable react/set-state-in-effect */
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const [agentsData, transfersData, citiesData] = await Promise.all([
-        agentService.getAll(),
-        transferService.getAllExhaustive(),
-        cityService.getAll(),
-      ])
-      setAgents(agentsData.filter((a) => a.role === UserRole.AGENT))
-      setTransfers(transfersData)
-      setCities(citiesData.map((c) => c.name))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les statistiques financières.')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  }, [loadData])
-
   const validatedDateRange = useMemo<DateRange | null>(() => {
     if (!startDate || !endDate) {
       return null
@@ -137,7 +140,6 @@ export default function AdminFinancialStatisticsPage() {
   }, [agentPerformances])
 
   const handleRefresh = () => {
-    setRefreshing(true)
     loadData()
   }
 

@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { transferService } from '../services/transferService'
-import type { Transfer } from '../../../types/index'
+import {
+  useTransfer,
+  useWithdrawalCode,
+  useMarkTransferAsPaid,
+  useCancelTransfer,
+} from '../hooks/useTransfers'
 import { TransferStatus } from '../../../types/index'
 import TransferStatusBadge from '../components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
@@ -14,17 +18,37 @@ export default function TransferDetailsPage() {
   const { transferId } = useParams<{ transferId: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [transfer, setTransfer] = useState<Transfer | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: transfer, isLoading: loading, isError: transferFailed } = useTransfer(transferId)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [paying, setPaying] = useState(false)
-  const [withdrawalCode, setWithdrawalCode] = useState<string | null>(null)
-  const [withdrawalCodeLoading, setWithdrawalCodeLoading] = useState(false)
-  const [withdrawalCodeError, setWithdrawalCodeError] = useState<string | null>(null)
+  const [codeRevealed, setCodeRevealed] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
-  const [cancelling, setCancelling] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [cancelError, setCancelError] = useState<string | null>(null)
+
+  const markAsPaid = useMarkTransferAsPaid()
+  const cancelTransfer = useCancelTransfer()
+  const {
+    data: withdrawalCodeData,
+    isFetching: withdrawalCodeLoading,
+    error: withdrawalCodeQueryError,
+  } = useWithdrawalCode(codeRevealed ? transfer?.id : undefined)
+
+  const paying = markAsPaid.isPending
+  const cancelling = cancelTransfer.isPending
+  const withdrawalCode = codeRevealed ? withdrawalCodeData?.withdrawalCode ?? null : null
+  const withdrawalCodeError = withdrawalCodeQueryError ? 'Impossible de récupérer le code de retrait.' : null
+
+  const isAuthorized = transfer
+    ? transfer.originAgentId === user?.id ||
+      transfer.destinationAgentId === user?.id ||
+      transfer.paidByAgentId === user?.id
+    : true
+
+  const error = transferFailed
+    ? 'Transfert introuvable.'
+    : transfer && !isAuthorized
+      ? "Vous n'êtes pas autorisé à consulter ce transfert."
+      : actionError
 
   useEffect(() => {
     if (showPaymentModal) {
@@ -37,57 +61,8 @@ export default function TransferDetailsPage() {
     }
   }, [showPaymentModal])
 
-  useEffect(() => {
-    async function load() {
-      if (!transferId) {
-        setError('Transfert introuvable.')
-        setLoading(false)
-        return
-      }
-
-      try {
-        const data = await transferService.getById(transferId)
-        setTransfer(data)
-
-        const isAuthorized =
-          data.originAgentId === user?.id ||
-          data.destinationAgentId === user?.id ||
-          data.paidByAgentId === user?.id
-
-        if (!isAuthorized) {
-          setError("Vous n'êtes pas autorisé à consulter ce transfert.")
-        }
-      } catch {
-        setError('Transfert introuvable.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [transferId, user?.id])
-
-  const handleToggleWithdrawalCode = async () => {
-    if (!transfer) return
-
-    if (withdrawalCode !== null) {
-      setWithdrawalCode(null)
-      return
-    }
-
-    setWithdrawalCodeLoading(true)
-    setWithdrawalCodeError(null)
-
-    try {
-      const result = await transferService.getWithdrawalCode(transfer.id)
-      setWithdrawalCode(result.withdrawalCode)
-    } catch (err) {
-      setWithdrawalCodeError(
-        err instanceof Error ? err.message : 'Impossible de récupérer le code de retrait.',
-      )
-    } finally {
-      setWithdrawalCodeLoading(false)
-    }
+  const handleToggleWithdrawalCode = () => {
+    setCodeRevealed((revealed) => !revealed)
   }
 
   const handleVerifyCode = () => {
@@ -99,32 +74,25 @@ export default function TransferDetailsPage() {
   const handlePayment = async () => {
     if (!transfer || !user) return
 
-    setPaying(true)
     try {
-      await transferService.markAsPaid(transfer.id)
+      await markAsPaid.mutateAsync(transfer.id)
       setShowPaymentModal(false)
       navigate(`/agent/transfers/${transfer.id}/payment-success`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors du paiement.')
-    } finally {
-      setPaying(false)
+      setActionError(err instanceof Error ? err.message : 'Une erreur est survenue lors du paiement.')
     }
   }
 
   const handleCancel = async () => {
     if (!transfer || !user) return
 
-    setCancelling(true)
     setCancelError(null)
 
     try {
-      await transferService.cancel(transfer.id)
-      setTransfer({ ...transfer, status: TransferStatus.CANCELLED })
+      await cancelTransfer.mutateAsync(transfer.id)
       setShowCancelModal(false)
     } catch (err) {
       setCancelError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'annulation.')
-    } finally {
-      setCancelling(false)
     }
   }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { transferService } from '../services/transferService'
+import { useCreateTransfer } from '../hooks/useTransfers'
 import { useActiveCities } from '../../cities/hooks/useCities'
 import { calculateTransferFee } from '../utils/calculateTransferFee'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
@@ -20,11 +20,12 @@ export default function CreateTransferPage() {
   const [destinationCityId, setDestinationCityId] = useState('')
   const [amount, setAmount] = useState('')
 
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const { data: cities = [], isLoading: citiesLoading, isError: citiesFailed } = useActiveCities()
+  const createTransfer = useCreateTransfer()
+  const loading = createTransfer.isPending
 
   const numericAmount = Number(amount)
   const hasValidAmount = amount !== '' && !Number.isNaN(numericAmount) && numericAmount >= MIN_TRANSFER_AMOUNT
@@ -62,10 +63,8 @@ export default function CreateTransferPage() {
       return
     }
 
-    setLoading(true)
-
     try {
-      const transfer = await transferService.create({
+      const transfer = await createTransfer.mutateAsync({
         senderName: senderName.trim(),
         senderPhone: senderPhone.trim(),
         recipientName: recipientName.trim(),
@@ -77,8 +76,6 @@ export default function CreateTransferPage() {
       navigate(`/agent/transfers/${transfer.id}/success`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la création du transfert.')
-    } finally {
-      setLoading(false)
     }
   }
 

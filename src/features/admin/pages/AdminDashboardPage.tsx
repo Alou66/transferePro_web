@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useAgents } from '../../agents/hooks/useAgents'
-import { transferService } from '../../transfers/services/transferService'
-import { UserRole, UserStatus, TransferStatus, type Agent, type Transfer } from '../../../types/index'
+import { useAllTransfersExhaustive } from '../../transfers/hooks/useTransfers'
+import { UserRole, UserStatus, TransferStatus, type Agent } from '../../../types/index'
 import TransferStatusBadge from '../../transfers/components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -44,40 +44,23 @@ export default function AdminDashboardPage() {
     error: agentsError,
     refetch: refetchAgents,
   } = useAgents()
-  const [transfers, setTransfers] = useState<Transfer[]>([])
-  const [transfersLoading, setTransfersLoading] = useState(true)
-  const [transfersFetching, setTransfersFetching] = useState(false)
-  const [transfersError, setTransfersError] = useState<string | null>(null)
-
-  const loadTransfers = async () => {
-    setTransfersFetching(true)
-    setTransfersError(null)
-
-    try {
-      const transfersData = await transferService.getAllExhaustive()
-      setTransfers(transfersData)
-    } catch (err) {
-      setTransfersError(err instanceof Error ? err.message : 'Impossible de charger les données du tableau de bord.')
-    } finally {
-      setTransfersLoading(false)
-      setTransfersFetching(false)
-    }
-  }
-
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadTransfers()
-  }, [])
+  const {
+    data: transfers = [],
+    isLoading: transfersLoading,
+    isFetching: transfersFetching,
+    error: transfersError,
+    refetch: refetchTransfers,
+  } = useAllTransfersExhaustive()
 
   const loading = agentsLoading || transfersLoading
   const refreshing = (agentsFetching || transfersFetching) && !loading
-  const error = agentsError
+  const error = agentsError || transfersError
     ? 'Impossible de charger les données du tableau de bord.'
-    : transfersError
+    : null
 
   const loadData = () => {
     refetchAgents()
-    loadTransfers()
+    refetchTransfers()
   }
 
   const handleRefresh = () => {

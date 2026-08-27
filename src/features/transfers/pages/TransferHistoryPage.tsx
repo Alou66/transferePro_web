@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
-import { transferService } from '../services/transferService'
+import { useMyTransfers, useCancelTransfer } from '../hooks/useTransfers'
 import type { Transfer } from '../../../types/index'
 import { TransferStatus } from '../../../types/index'
 import { useAgentStatistics } from '../../agents/hooks/useAgents'
@@ -31,38 +31,24 @@ const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 export default function TransferHistoryPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [allTransfers, setAllTransfers] = useState<Transfer[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
   const [typeFilter, setTypeFilter] = useState<TransferType>('ALL')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [search, setSearch] = useState('')
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
-  const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
 
-  const loadData = useCallback(async () => {
-    if (!user) return
+  const {
+    data: allTransfers = [],
+    isLoading: loading,
+    isFetching,
+    error: queryError,
+    refetch: loadData,
+  } = useMyTransfers()
+  const cancelTransfer = useCancelTransfer()
 
-    setLoading(true)
-    setError(null)
-
-    try {
-      const data = await transferService.getAllForAgent()
-      setAllTransfers(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger l\'historique des transferts.')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [user])
-
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  }, [loadData])
+  const error = queryError ? 'Impossible de charger l\'historique des transferts.' : null
+  const refreshing = isFetching && !loading
+  const cancelling = cancelTransfer.isPending
 
   const {
     data: statistics,
@@ -124,28 +110,19 @@ export default function TransferHistoryPage() {
   }, [allTransfers, user])
 
   const handleRefresh = () => {
-    setRefreshing(true)
     loadData()
   }
 
   const handleCancel = async () => {
     if (!cancelTargetId || !user) return
 
-    setCancelling(true)
     setCancelError(null)
 
     try {
-      await transferService.cancel(cancelTargetId)
-      setAllTransfers((prev) =>
-        prev.map((t) =>
-          t.id === cancelTargetId ? { ...t, status: TransferStatus.CANCELLED } : t,
-        ),
-      )
+      await cancelTransfer.mutateAsync(cancelTargetId)
       setCancelTargetId(null)
     } catch (err) {
       setCancelError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'annulation.')
-    } finally {
-      setCancelling(false)
     }
   }
 

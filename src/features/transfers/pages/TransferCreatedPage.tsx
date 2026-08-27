@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
 import { useParams, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { transferService } from '../services/transferService'
-import type { Transfer } from '../../../types/index'
+import { useTransfer } from '../hooks/useTransfers'
 import TransferStatusBadge from '../components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -11,34 +9,14 @@ import './TransferCreatedPage.css'
 export default function TransferCreatedPage() {
   const { transferId } = useParams<{ transferId: string }>()
   const { user } = useAuth()
-  const [transfer, setTransfer] = useState<Transfer | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: transfer, isLoading: loading, isError: transferFailed } = useTransfer(transferId)
 
-  useEffect(() => {
-    async function load() {
-      if (!transferId) {
-        setError('Transfert introuvable.')
-        setLoading(false)
-        return
-      }
-
-      try {
-        const data = await transferService.getById(transferId)
-        setTransfer(data)
-
-        if (data.originAgentId !== user?.id) {
-          setError('Vous n\'êtes pas autorisé à consulter ce transfert.')
-        }
-      } catch {
-        setError('Transfert introuvable.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [transferId, user?.id])
+  const error =
+    transferFailed || !transferId
+      ? 'Transfert introuvable.'
+      : transfer && transfer.originAgentId !== user?.id
+        ? 'Vous n\'êtes pas autorisé à consulter ce transfert.'
+        : null
 
   if (loading) {
     return (

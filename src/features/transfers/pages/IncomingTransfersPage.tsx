@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../../auth/hooks/useAuth'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { transferService } from '../services/transferService'
-import { TransferStatus, type Transfer } from '../../../types/index'
+import { useIncomingTransfers } from '../hooks/useTransfers'
+import { TransferStatus } from '../../../types/index'
 import TransferStatusBadge from '../components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -12,41 +11,23 @@ const PAGE_SIZE = 20
 const PENDING_STATUSES = [TransferStatus.CREATED, TransferStatus.READY_FOR_PAYMENT]
 
 export default function IncomingTransfersPage() {
-  const { user } = useAuth()
   const navigate = useNavigate()
-  const [transfers, setTransfers] = useState<Transfer[]>([])
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
 
-  const loadData = useCallback(async () => {
-    if (!user) return
+  const {
+    data: result,
+    isLoading: loading,
+    isFetching,
+    error: queryError,
+    refetch: loadData,
+  } = useIncomingTransfers(page, PAGE_SIZE, PENDING_STATUSES)
 
-    setLoading(true)
-    setError(null)
-
-    try {
-      const result = await transferService.getIncomingForAgent(page, PAGE_SIZE, PENDING_STATUSES)
-
-      setTransfers(result.items)
-      setTotalPages(result.pagination.totalPages)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les transferts entrants.')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [user, page])
-
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  }, [loadData])
+  const transfers = result?.items ?? []
+  const totalPages = result?.pagination.totalPages ?? 1
+  const error = queryError ? 'Impossible de charger les transferts entrants.' : null
+  const refreshing = isFetching && !loading
 
   const handleRefresh = () => {
-    setRefreshing(true)
     loadData()
   }
 

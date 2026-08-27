@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { transferService } from '../../transfers/services/transferService'
-import { TransferStatus, type Transfer } from '../../../types/index'
+import { useTransfers } from '../../transfers/hooks/useTransfers'
+import { TransferStatus } from '../../../types/index'
 import TransferStatusBadge from '../../transfers/components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
@@ -23,38 +23,24 @@ const PAGE_SIZE = 20
 
 export default function AdminTransfersPage() {
   const navigate = useNavigate()
-  const [transfers, setTransfers] = useState<Transfer[]>([])
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [cityFilter, setCityFilter] = useState<string>('ALL')
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const {
+    data: result,
+    isLoading: loading,
+    isFetching,
+    error: queryError,
+    refetch: loadData,
+  } = useTransfers(page, PAGE_SIZE)
 
-    try {
-      const result = await transferService.getAll(page, PAGE_SIZE)
-      setTransfers(result.items)
-      setTotalPages(result.pagination.totalPages)
-      setTotal(result.pagination.total)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les transferts.')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [page])
-
-  useEffect(() => {
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    loadData()
-  }, [loadData])
+  const transfers = result?.items ?? []
+  const totalPages = result?.pagination.totalPages ?? 1
+  const total = result?.pagination.total ?? 0
+  const error = queryError ? 'Impossible de charger les transferts.' : null
+  const refreshing = isFetching && !loading
 
   const sortedTransfers = useMemo(() => {
     return [...transfers].sort(
@@ -92,7 +78,6 @@ export default function AdminTransfersPage() {
   }, [sortedTransfers, statusFilter, cityFilter, search])
 
   const handleRefresh = () => {
-    setRefreshing(true)
     loadData()
   }
 
@@ -120,7 +105,7 @@ export default function AdminTransfersPage() {
       <div className="admin-transfers-page">
         <div className="admin-transfers-error">
           <p>{error}</p>
-          <button onClick={loadData} className="admin-retry-button">
+          <button onClick={() => loadData()} className="admin-retry-button">
             Réessayer
           </button>
         </div>

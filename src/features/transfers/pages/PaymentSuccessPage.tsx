@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
 import { useParams, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { transferService } from '../services/transferService'
-import type { Transfer } from '../../../types/index'
+import { useTransfer } from '../hooks/useTransfers'
 import { TransferStatus } from '../../../types/index'
 import TransferStatusBadge from '../components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
@@ -12,38 +10,20 @@ import './PaymentSuccessPage.css'
 export default function PaymentSuccessPage() {
   const { transferId } = useParams<{ transferId: string }>()
   const { user } = useAuth()
-  const [transfer, setTransfer] = useState<Transfer | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: transfer, isLoading: loading, isError: transferFailed } = useTransfer(transferId)
 
-  useEffect(() => {
-    async function load() {
-      if (!transferId) {
-        setError('Transfert introuvable.')
-        setLoading(false)
-        return
-      }
+  const isAuthorized = transfer
+    ? transfer.destinationAgentId === user?.id &&
+      transfer.paidByAgentId === user?.id &&
+      transfer.status === TransferStatus.PAID
+    : true
 
-      try {
-        const data = await transferService.getById(transferId)
-        setTransfer(data)
-
-        if (
-          data.destinationAgentId !== user?.id ||
-          data.paidByAgentId !== user?.id ||
-          data.status !== TransferStatus.PAID
-        ) {
-          setError("Vous n'êtes pas autorisé à consulter cette confirmation.")
-        }
-      } catch {
-        setError('Transfert introuvable.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [transferId, user?.id])
+  const error =
+    transferFailed || !transferId
+      ? 'Transfert introuvable.'
+      : transfer && !isAuthorized
+        ? "Vous n'êtes pas autorisé à consulter cette confirmation."
+        : null
 
   if (loading) {
     return (

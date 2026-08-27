@@ -1,84 +1,26 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, NavLink } from 'react-router-dom'
-import { transferService } from '../../transfers/services/transferService'
-import { agentService } from '../../agents/services/agentService'
-import { TransferStatus, type Transfer } from '../../../types/index'
+import { useTransfer, useAdminCancelTransfer } from '../../transfers/hooks/useTransfers'
+import { useAgent } from '../../agents/hooks/useAgents'
+import { TransferStatus } from '../../../types/index'
 import TransferStatusBadge from '../../transfers/components/TransferStatusBadge'
 import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
 import BackButton from '../../../components/common/BackButton'
 import './AdminTransferDetailsPage.css'
 
-interface AgentInfo {
-  id: string
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  city: string
-}
-
 export default function AdminTransferDetailsPage() {
   const { transferId } = useParams<{ transferId: string }>()
-  const [transfer, setTransfer] = useState<Transfer | null>(null)
-  const [originAgent, setOriginAgent] = useState<AgentInfo | null>(null)
-  const [destinationAgent, setDestinationAgent] = useState<AgentInfo | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [cancelling, setCancelling] = useState(false)
+  const { data: transfer, isLoading: transferLoading, isError: transferFailed } = useTransfer(transferId)
+  const { data: originAgent, isLoading: originLoading } = useAgent(transfer?.originAgentId)
+  const { data: destinationAgent, isLoading: destinationLoading } = useAgent(transfer?.destinationAgentId)
+  const adminCancelTransfer = useAdminCancelTransfer()
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function load() {
-      if (!transferId) {
-        setError('Transfert introuvable.')
-        setLoading(false)
-        return
-      }
-
-      setLoading(true)
-      setError(null)
-
-      try {
-        const data = await transferService.getById(transferId)
-        setTransfer(data)
-
-        const agentIds = new Set<string>([
-          data.originAgentId,
-          data.destinationAgentId,
-        ])
-
-        const agentPromises = Array.from(agentIds).map((id) =>
-          agentService.getById(id).catch(() => null),
-        )
-        const agentsResults = await Promise.all(agentPromises)
-
-        const agentMap = new Map<string, AgentInfo>()
-        for (const agent of agentsResults) {
-          if (agent) {
-            agentMap.set(agent.id, {
-              id: agent.id,
-              firstName: agent.firstName,
-              lastName: agent.lastName,
-              email: agent.email,
-              phone: agent.phone,
-              city: agent.city,
-            })
-          }
-        }
-
-        setOriginAgent(agentMap.get(data.originAgentId) ?? null)
-        setDestinationAgent(agentMap.get(data.destinationAgentId) ?? null)
-      } catch {
-        setError('Transfert introuvable.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [transferId])
+  const loading = transferLoading || (Boolean(transfer) && (originLoading || destinationLoading))
+  const error = !transferId || transferFailed ? 'Transfert introuvable.' : null
+  const cancelling = adminCancelTransfer.isPending
 
   const lifecycleSteps = useMemo(() => {
     if (!transfer) return []
@@ -109,17 +51,13 @@ export default function AdminTransferDetailsPage() {
   const handleCancel = async () => {
     if (!transfer) return
 
-    setCancelling(true)
     setCancelError(null)
 
     try {
-      await transferService.adminCancel(transfer.id)
-      setTransfer({ ...transfer, status: TransferStatus.CANCELLED })
+      await adminCancelTransfer.mutateAsync(transfer.id)
       setShowCancelModal(false)
     } catch (err) {
       setCancelError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'annulation.')
-    } finally {
-      setCancelling(false)
     }
   }
 
