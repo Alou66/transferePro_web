@@ -74,10 +74,33 @@ export function useWithdrawalCode(id: string | undefined) {
 // de maintenir une liste de clés précises à jour à chaque nouvel écran. Les
 // statistiques agent (soldes) dépendent aussi des transferts, donc on les
 // invalide dans la foulée.
+//
+// `exceptDetailId` exclut le détail d'un transfert précis de cette
+// invalidation : pour create/markAsPaid, on vient d'écrire la réponse
+// (fraîche et faisant autorité) de la mutation dans le cache de cette même
+// clé via setQueryData. Si on l'invalidait aussi, invalidateQueries
+// déclencherait un second GET en arrière-plan pour la page encore montée
+// (TransferDetailsPage) — un GET qui course avec setQueryData sans aucune
+// garantie d'ordre de résolution, et qui peut donc écraser la donnée fraîche
+// par une réponse obsolète (c'est ce qui provoquait l'erreur "non autorisé"
+// sur PaymentSuccessPage juste après un paiement).
 function useInvalidateTransfers() {
   const queryClient = useQueryClient()
-  return () => {
-    queryClient.invalidateQueries({ queryKey: transferKeys.all })
+  return (exceptDetailId?: string) => {
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey
+        if (
+          exceptDetailId &&
+          key[0] === transferKeys.all[0] &&
+          key[1] === 'detail' &&
+          key[2] === exceptDetailId
+        ) {
+          return false
+        }
+        return key[0] === transferKeys.all[0]
+      },
+    })
     queryClient.invalidateQueries({ queryKey: agentKeys.all })
   }
 }
@@ -88,12 +111,10 @@ export function useCreateTransfer() {
   return useMutation({
     mutationFn: (input: CreateTransferInput) => transferService.create(input),
     onSuccess: (transfer) => {
-      invalidate()
       // Évite un GET immédiat sur TransferCreatedPage : la réponse de
       // création contient déjà le transfert complet (dont le code de retrait).
-      // Doit rester après invalidate() : sinon la sweep d'invalidation
-      // marquerait aussi cette entrée comme périmée.
       queryClient.setQueryData(transferKeys.detail(transfer.id), transfer)
+      invalidate(transfer.id)
     },
   })
 }
@@ -120,9 +141,9 @@ export function useMarkTransferAsPaid() {
   return useMutation({
     mutationFn: (id: string) => transferService.markAsPaid(id),
     onSuccess: (transfer) => {
-      invalidate()
       // Évite un GET immédiat sur PaymentSuccessPage.
       queryClient.setQueryData(transferKeys.detail(transfer.id), transfer)
+      invalidate(transfer.id)
     },
   })
 }
