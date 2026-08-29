@@ -7,6 +7,7 @@ import RoleRoute from './features/auth/components/RoleRoute'
 import AgentLayout from './features/agent/layout/AgentLayout'
 import AdminLayout from './features/admin/layout/AdminLayout'
 import PageLoader from './shared/components/PageLoader'
+import InstallAppButton from './shared/components/InstallAppButton'
 
 const LoginPage = lazy(() => import('./features/auth/pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
@@ -31,6 +32,7 @@ const TransferHistoryPage = lazy(() => import('./features/transfers/pages/Transf
 function App() {
   return (
     <AuthProvider>
+      <InstallAppButton />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
