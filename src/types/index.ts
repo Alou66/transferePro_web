@@ -69,17 +69,6 @@ export interface Transfer {
   paidByAgentId: string | null
 }
 
-export interface CreateAgentInput {
-  firstName: string
-  lastName: string
-  phone: string
-  email: string
-  password: string
-  city: City
-  role: UserRole
-  status: UserStatus
-}
-
 export interface RegisterAgentInput {
   firstName: string
   lastName: string

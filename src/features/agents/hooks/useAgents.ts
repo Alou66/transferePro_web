@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { agentService } from '../services/agentService'
-import type { Agent, CreateAgentInput } from '../../../types/index'
 import { UserStatus } from '../../../types/index'
 
 export const agentKeys = {
@@ -45,26 +44,6 @@ export function usePendingAgents() {
   return useQuery({
     queryKey: agentKeys.pending(),
     queryFn: agentService.getPendingAgents,
-  })
-}
-
-export function useCreateAgent() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (input: CreateAgentInput) => agentService.create(input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentKeys.all })
-    },
-  })
-}
-
-export function useUpdateAgent() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Agent> }) => agentService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentKeys.all })
-    },
   })
 }
 

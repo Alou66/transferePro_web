@@ -1,11 +1,9 @@
 import {
   get,
-  post,
   patch,
 } from '../../../services/api'
 import type {
   Agent,
-  CreateAgentInput,
 } from '../../../types/index'
 import { UserRole, UserStatus } from '../../../types/index'
 import { cityService } from '../../cities/services/cityService'
@@ -110,47 +108,6 @@ export const agentService = {
       updatedAt?: string
     }>(`/agents/${id}`)
     return mapAgent(data)
-  },
-
-  async create(input: CreateAgentInput): Promise<Agent> {
-    const now = new Date().toISOString()
-    const payload = {
-      ...input,
-      createdAt: now,
-      updatedAt: now,
-    }
-    const data = await post<{
-      id: string
-      firstName: string
-      lastName: string
-      phone: string
-      email: string
-      role: string
-      status: string
-      city: { id: string; name: string }
-      createdAt?: string
-      updatedAt?: string
-    }>('/agents', payload)
-    return mapAgent(data)
-  },
-
-  async update(id: string, data: Partial<Agent>): Promise<Agent> {
-    const updated = await patch<{
-      id: string
-      firstName: string
-      lastName: string
-      phone: string
-      email: string
-      role: string
-      status: string
-      city: { id: string; name: string }
-      createdAt?: string
-      updatedAt?: string
-    }>('/agents', id, {
-      ...data,
-      updatedAt: new Date().toISOString(),
-    })
-    return mapAgent(updated)
   },
 
   async activateAgent(id: string): Promise<Agent> {
