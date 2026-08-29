@@ -45,12 +45,7 @@ export async function create(input: CityCreateInput): Promise<CityModel> {
     throw new Error('Une ville avec ce nom existe déjà.')
   }
 
-  const now = new Date().toISOString()
-  return api.post<CityModel>('/cities', {
-    name,
-    isActive: true,
-    createdAt: now,
-  })
+  return api.post<CityModel>('/cities', { name })
 }
 
 export async function update(id: string, input: CityUpdateInput): Promise<CityModel> {

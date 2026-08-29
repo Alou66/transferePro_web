@@ -229,7 +229,7 @@ export const agentService = {
       createdAt?: string
       updatedAt?: string
     }>>(
-      `/agents?cityId=${encodeURIComponent(cityId)}&role=${UserRole.AGENT}&status=${UserStatus.ACTIVE}`,
+      `/agents?cityId=${encodeURIComponent(cityId)}&status=${UserStatus.ACTIVE}`,
     )
     const mapped = mapAgents(agents)
     return mapped.length > 0 ? mapped[0] : null
@@ -247,7 +247,7 @@ export const agentService = {
       city: { id: string; name: string }
       createdAt?: string
       updatedAt?: string
-    }>>(`/agents?role=${UserRole.AGENT}&status=${UserStatus.PENDING}`)
+    }>>(`/agents?status=${UserStatus.PENDING}`)
     return mapAgents(data)
   },
 }
