@@ -13,10 +13,15 @@ export default function RegisterPage() {
     phone: '',
     email: '',
     password: '',
+    confirmPassword: '',
     cityId: '',
   })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const passwordsMismatch = form.confirmPassword.length > 0 && form.password !== form.confirmPassword
 
   const { data: cities = [], isLoading: citiesLoading, isError: citiesFailed } = useAvailableCitiesForRegistration()
 
@@ -35,6 +40,12 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (form.password !== form.confirmPassword) {
+      setError('Les mots de passe ne correspondent pas.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -112,14 +123,54 @@ export default function RegisterPage() {
 
           <div className="form-group">
             <label htmlFor="password">Mot de passe</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
+            <div className="password-field">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
+            <div className="password-field">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={form.confirmPassword}
+                onChange={handleChange}
+                required
+                minLength={6}
+                placeholder="••••••••"
+                aria-invalid={passwordsMismatch}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
+            {passwordsMismatch && (
+              <p className="form-field-error">Les mots de passe ne correspondent pas.</p>
+            )}
           </div>
 
           <div className="form-group">
@@ -150,7 +201,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading || citiesLoading || cities.length === 0}
+            disabled={loading || citiesLoading || cities.length === 0 || passwordsMismatch}
             className="register-button"
           >
             {loading ? 'Inscription en cours...' : "S'inscrire"}
