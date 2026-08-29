@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
+        devOptions: {
+          enabled: true,
+          type: 'module',
+        },
         includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
         manifest: {
           name: 'TransferePro',
@@ -60,6 +64,8 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     server: {
+      host: true,
+      allowedHosts: true,
       proxy: {
         '/api': {
           target: apiUrl === '/api' ? 'http://localhost:3000' : apiUrl,
