@@ -68,7 +68,7 @@ export default defineConfig(({ mode }) => {
       allowedHosts: true,
       proxy: {
         '/api': {
-          target: apiUrl === '/api' ? 'http://localhost:3000' : apiUrl,
+          target: apiUrl === '/api' ? 'http://localhost:3001' : apiUrl,
           changeOrigin: true,
         },
       },
