@@ -45,7 +45,6 @@ export default function LoginPage() {
           <span className="login-brand-pro">Pro</span>
         </span>
         <span className="login-brand-divider" aria-hidden="true" />
-        <span className="login-brand-description">de Alassane</span>
       </div>
       <div className="login-card">
         <h1>Connexion</h1>
