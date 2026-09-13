@@ -165,10 +165,12 @@ export default function TransferDetailsPage() {
 
           <div className="transfer-details-section">
             <h2>Montant</h2>
-            <p className="transfer-details-amount">{formatCurrency(transfer.amount)}</p>
+            <p className="transfer-details-amount">
+              Montant total : {formatCurrency(transfer.amount + transfer.fee)}
+            </p>
             <p className="transfer-details-fee">Frais : {formatCurrency(transfer.fee)}</p>
             <p className="transfer-details-total">
-              Total à recevoir : <strong>{formatCurrency(transfer.amount + transfer.fee)}</strong>
+              Total à remettre : <strong>{formatCurrency(transfer.amount)}</strong>
             </p>
           </div>
 
