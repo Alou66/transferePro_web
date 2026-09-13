@@ -17,9 +17,9 @@ export default defineConfig(({ mode }) => {
         },
         includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
         manifest: {
-          name: 'TransferePro',
-          short_name: 'TransferePro',
-          description: 'Application de gestion de transferts d\'argent TransferePro',
+          name: 'TransfertPro',
+          short_name: 'TransfertPro',
+          description: 'Application de gestion de transferts d\'argent TransfertPro',
           theme_color: '#2563eb',
           background_color: '#f8fafc',
           display: 'standalone',
