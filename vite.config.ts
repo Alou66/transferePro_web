@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => {
         },
         includeAssets: ['favicon.png', 'icons/apple-touch-icon.png'],
         manifest: {
-          name: 'TMD Business Excellence',
-          short_name: 'TMD Business Excellence',
+          name: 'TMD Business ',
+          short_name: 'TMD Business ',
           description: 'Application de gestion de transferts d\'argent TMD Business',
           theme_color: '#000000',
           background_color: '#000000',
