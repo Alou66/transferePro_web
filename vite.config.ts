@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
           name: 'TransferePro',
           short_name: 'TransferePro',
           description: 'Application de gestion de transferts d\'argent TransferePro',
-          theme_color: '#863bff',
+          theme_color: '#2563eb',
           background_color: '#f8fafc',
           display: 'standalone',
           start_url: '/',
