@@ -22,7 +22,8 @@ export default function AgentLayout() {
       <header className="layout-header">
         <div className="layout-header-content">
           <NavLink to="/agent" className="layout-brand">
-            TransferePro
+            <img src="/icons/icon-192.png" alt="" className="layout-brand-icon" />
+            TMD Business
           </NavLink>
 
           <button

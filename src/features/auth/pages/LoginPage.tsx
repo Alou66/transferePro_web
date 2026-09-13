@@ -56,11 +56,10 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-brand">
         <span className="login-brand-icon">
-          <img src="/favicon.svg" alt="" />
+          <img src="/icons/icon-192.png" alt="TMD Business" />
         </span>
         <span className="login-brand-text">
-          <span className="login-brand-name">Transfert</span>
-          <span className="login-brand-pro">Pro</span>
+          <span className="login-brand-name">TMD Business Excellence</span>
         </span>
         <span className="login-brand-divider" aria-hidden="true" />
         <span className="login-brand-description">Espace agent</span>

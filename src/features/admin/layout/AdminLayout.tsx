@@ -23,7 +23,8 @@ export default function AdminLayout() {
       <header className="layout-header">
         <div className="layout-header-content">
           <NavLink to="/admin" className="layout-brand">
-            TransferePro
+            <img src="/icons/icon-192.png" alt="" className="layout-brand-icon" />
+            TMD Business
           </NavLink>
 
           <button

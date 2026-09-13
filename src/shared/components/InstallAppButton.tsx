@@ -61,7 +61,7 @@ export default function InstallAppButton() {
       {showIosModal && (
         <div className="install-app-modal-overlay" onClick={() => setShowIosModal(false)}>
           <div className="install-app-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Installer TransferePro</h2>
+            <h2>Installer TMD Business</h2>
             <p className="install-app-modal-subtitle">
               Sur iPhone/iPad, l&apos;installation se fait depuis Safari en 3 étapes :
             </p>
