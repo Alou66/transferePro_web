@@ -10,6 +10,7 @@ import PageLoader from './shared/components/PageLoader'
 import InstallAppButton from './shared/components/InstallAppButton'
 
 const LoginPage = lazy(() => import('./features/auth/pages/LoginPage'))
+const ForgotPasswordPage = lazy(() => import('./features/auth/pages/ForgotPasswordPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const PendingValidationPage = lazy(() => import('./pages/PendingValidationPage'))
 const NotFoundPage = lazy(() => import('./features/auth/pages/NotFoundPage'))
@@ -37,6 +38,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/pending-validation" element={<PendingValidationPage />} />
           <Route

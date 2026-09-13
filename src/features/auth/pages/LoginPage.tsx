@@ -116,6 +116,9 @@ export default function LoginPage() {
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
+            <Link to="/forgot-password" className="login-link login-forgot-link">
+              Mot de passe oublié ?
+            </Link>
           </div>
 
           <button type="submit" disabled={loading} className="login-button">

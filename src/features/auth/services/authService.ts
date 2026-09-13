@@ -85,6 +85,20 @@ export const authService = {
     return mapBackendUserToAgent(result)
   },
 
+  async verifyPhoneForReset(phone: string): Promise<{ resetToken: string; firstName: string; lastName: string }> {
+    return api.post<{ resetToken: string; firstName: string; lastName: string }>(
+      '/auth/forgot-password/verify-phone',
+      { phone },
+    )
+  },
+
+  async resetPassword(resetToken: string, newPassword: string): Promise<void> {
+    await api.post<{ message: string }>('/auth/forgot-password/reset', {
+      resetToken,
+      newPassword,
+    })
+  },
+
   getCurrentUser(): AuthResponse | null {
     const raw = localStorage.getItem(SESSION_KEY)
     if (!raw) {
