@@ -59,7 +59,7 @@ export default function LoginPage() {
           <img src="/favicon.svg" alt="" />
         </span>
         <span className="login-brand-text">
-          <span className="login-brand-name">Transfere</span>
+          <span className="login-brand-name">Transfert</span>
           <span className="login-brand-pro">Pro</span>
         </span>
         <span className="login-brand-divider" aria-hidden="true" />
