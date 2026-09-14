@@ -19,6 +19,17 @@ function getAuthHeaders(): Record<string, string> {
   return {}
 }
 
+async function doFetch(url: string, options: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options)
+  } catch {
+    const message = typeof navigator !== 'undefined' && !navigator.onLine
+      ? 'Pas de connexion internet. Vérifiez votre connexion et réessayez.'
+      : 'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.'
+    throw new Error(message)
+  }
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Une erreur est survenue' }))
@@ -35,7 +46,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await doFetch(`${API_BASE_URL}${path}`, {
     headers: {
       ...getAuthHeaders(),
     },
@@ -44,7 +55,7 @@ export async function get<T>(path: string): Promise<T> {
 }
 
 export async function getById<T>(path: string, id: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}/${id}`, {
+  const response = await doFetch(`${API_BASE_URL}${path}/${id}`, {
     headers: {
       ...getAuthHeaders(),
     },
@@ -53,7 +64,7 @@ export async function getById<T>(path: string, id: string): Promise<T> {
 }
 
 export async function post<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await doFetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -65,7 +76,7 @@ export async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function put<T>(path: string, id: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}/${id}`, {
+  const response = await doFetch(`${API_BASE_URL}${path}/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -78,7 +89,7 @@ export async function put<T>(path: string, id: string, body: unknown): Promise<T
 
 export async function patch<T>(path: string, id: string | undefined, body: unknown): Promise<T> {
   const url = id !== undefined ? `${API_BASE_URL}${path}/${id}` : `${API_BASE_URL}${path}`
-  const response = await fetch(url, {
+  const response = await doFetch(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -90,7 +101,7 @@ export async function patch<T>(path: string, id: string | undefined, body: unkno
 }
 
 export async function remove(path: string, id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}${path}/${id}`, {
+  const response = await doFetch(`${API_BASE_URL}${path}/${id}`, {
     method: 'DELETE',
     headers: {
       ...getAuthHeaders(),
