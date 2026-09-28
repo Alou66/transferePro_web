@@ -44,7 +44,75 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
             cd ~/transfertPro/transfertPro-infra
-            sudo docker compose pull frontend
-            sudo docker compose up -d frontend
-            sudo docker image prune -f
+
+            OLD_WEB_VERSION=$(grep '^WEB_VERSION=' .env | cut -d= -f2- || echo "")
+            if [ -z "$OLD_WEB_VERSION" ] || [ "$OLD_WEB_VERSION" = "latest" ]; then
+              echo "ERROR: WEB_VERSION in .env is missing, empty, or set to 'latest'. Aborting deployment before any modification."
+              exit 1
+            fi
+
+            deploy() {
+              local version=$1
+
+              sed -i "s|^WEB_VERSION=.*|WEB_VERSION=${version}|" .env || return 1
+              sudo docker compose pull frontend || return 1
+              sudo docker compose up -d frontend || return 1
+              sudo docker image prune -f
+
+              CONTAINER_ID=$(sudo docker compose ps -q frontend)
+              if [ -z "$CONTAINER_ID" ]; then
+                echo "ERROR: Frontend container not found"
+                return 1
+              fi
+
+              CONTAINER_IMAGE=$(sudo docker inspect --format='{{.Config.Image}}' "$CONTAINER_ID")
+              EXPECTED_IMAGE="ghcr.io/alou66/transferepro-web:${version}"
+              echo "Container image: $CONTAINER_IMAGE"
+              echo "Expected image:  $EXPECTED_IMAGE"
+              case "$CONTAINER_IMAGE" in
+                *"$EXPECTED_IMAGE"*)
+                  echo "Image verification passed"
+                  ;;
+                *)
+                  echo "ERROR: Container is NOT using the expected image $EXPECTED_IMAGE"
+                  return 1
+                  ;;
+              esac
+
+              HEALTHY=false
+              for i in {1..30}; do
+                HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://transfert-pro.online/ || echo "000")
+                if [ "$HTTP_CODE" = "200" ]; then
+                  HEALTHY=true
+                  break
+                fi
+                echo "Health check attempt $i/30: HTTP $HTTP_CODE, retrying in 10s..."
+                sleep 10
+              done
+
+              if [ "$HEALTHY" = "true" ]; then
+                echo "Health check passed"
+                return 0
+              else
+                echo "ERROR: Health check failed after 30 attempts"
+                return 1
+              fi
+            }
+
+            if deploy "${{ github.sha }}"; then
+              echo "Deployment succeeded with SHA ${{ github.sha }}"
+              exit 0
+            fi
+
+            echo "ERROR: New deployment failed. Initiating rollback to WEB_VERSION=$OLD_WEB_VERSION"
+
+            if deploy "$OLD_WEB_VERSION"; then
+              echo "ERROR: New deployment failed, but production was successfully restored to WEB_VERSION=$OLD_WEB_VERSION"
+              exit 1
+            else
+              echo "ERROR: New deployment failed AND rollback failed"
+              echo "ERROR: Production may be in a degraded state. Manual intervention required."
+              exit 1
+            fi
