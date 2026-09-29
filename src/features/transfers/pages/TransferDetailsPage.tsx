@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, NavLink } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import {
   useTransfer,
@@ -18,6 +18,8 @@ export default function TransferDetailsPage() {
   const { transferId } = useParams<{ transferId: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const backLink = (location.state as { from?: string } | null)?.from ?? '/agent/transfers/history'
   const { data: transfer, isLoading: loading, isError: transferFailed } = useTransfer(transferId)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [codeRevealed, setCodeRevealed] = useState(false)
@@ -130,11 +132,18 @@ export default function TransferDetailsPage() {
   const canVerifyCode = isCreated && isDestinationAgent
   const canPay = isReadyForPayment && isDestinationAgent
   const canCancel = isCreated && isOriginAgent
+  // Règle métier : modifiable tant que le transfert n'est pas payé. Même
+  // condition que le backend, qui reste seul juge en cas de course.
+  const canEdit = !isPaid && !isCancelled && isOriginAgent
   const canViewWithdrawalCode = isOriginAgent
 
   return (
     <div className="transfer-details-page">
-      <BackButton to="/agent/transfers/incoming" />
+      {/* Le retour ramène vers la liste d'où vient l'agent. Cette page est
+          accessible depuis l'historique comme depuis les transferts entrants :
+          la liste d'origine est passée par le state de la navigation, avec
+          l'historique en repli (ouverture directe de l'URL, par exemple). */}
+      <BackButton to={backLink} />
       <div className="transfer-details-card">
         <div className="transfer-details-header">
           <div>
@@ -234,6 +243,15 @@ export default function TransferDetailsPage() {
                 Effectuer le paiement
               </button>
             </>
+          )}
+
+          {canEdit && (
+            <button
+              onClick={() => navigate(`/agent/transfers/${transfer.id}/edit`)}
+              className="transfer-details-button secondary"
+            >
+              Modifier
+            </button>
           )}
 
           {canCancel && (

@@ -105,6 +105,16 @@
   background: var(--color-primary-hover);
 }
 
+.transfer-details-button.secondary {
+  background: white;
+  color: var(--color-primary);
+  border: 1px solid var(--color-slate-300);
+}
+
+.transfer-details-button.secondary:hover:not(:disabled) {
+  background: var(--color-slate-50);
+}
+
 .transfer-details-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;

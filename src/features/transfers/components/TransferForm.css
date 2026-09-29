@@ -1,0 +1,157 @@
+/* Styles du formulaire de transfert, partagés par la création
+   (CreateTransferPage) et la modification (EditTransferPage). */
+.create-transfer-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.create-transfer-fieldset {
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.create-transfer-legend {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-slate-700);
+  padding: 0 var(--space-2);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-group label {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-slate-700);
+}
+
+.form-group input,
+.form-group select {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-slate-300);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  color: var(--color-dark);
+  background: white;
+  min-height: 44px;
+  width: 100%;
+  transition: border-color var(--transition-fast);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-ring);
+}
+
+.form-group input::placeholder {
+  color: var(--color-slate-400);
+}
+
+.create-transfer-input-disabled {
+  background: var(--color-slate-100);
+  color: var(--color-slate-500);
+  cursor: not-allowed;
+}
+
+.create-transfer-hint {
+  font-size: var(--text-xs);
+  color: var(--color-slate-500);
+}
+
+.create-transfer-summary {
+  background: var(--color-slate-50);
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-base);
+  color: var(--color-slate-600);
+}
+
+.summary-row-total {
+  border-top: 1px solid var(--color-slate-200);
+  padding-top: var(--space-2);
+  margin-top: var(--space-1);
+  font-weight: 700;
+  color: var(--color-dark);
+  font-size: var(--text-md);
+}
+
+.create-transfer-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.create-transfer-button {
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background var(--transition-fast);
+  min-height: 44px;
+}
+
+.create-transfer-button.primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.create-transfer-button.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.create-transfer-button.secondary {
+  background: white;
+  color: var(--color-primary);
+  border: 1px solid var(--color-slate-300);
+}
+
+.create-transfer-button.secondary:hover:not(:disabled) {
+  background: var(--color-slate-50);
+}
+
+.create-transfer-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.create-transfer-success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-base);
+}
+
+@media (max-width: 480px) {
+  .create-transfer-actions {
+    flex-direction: column-reverse;
+  }
+
+  .create-transfer-button {
+    width: 100%;
+  }
+}

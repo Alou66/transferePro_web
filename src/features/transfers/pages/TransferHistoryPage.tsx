@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
-import { useMyTransfers, useCancelTransfer } from '../hooks/useTransfers'
+import { useMyTransfers } from '../hooks/useTransfers'
 import type { Transfer } from '../../../types/index'
 import { TransferStatus } from '../../../types/index'
 import { useAgentStatistics } from '../../agents/hooks/useAgents'
@@ -34,8 +34,6 @@ export default function TransferHistoryPage() {
   const [typeFilter, setTypeFilter] = useState<TransferType>('ALL')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [search, setSearch] = useState('')
-  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
-  const [cancelError, setCancelError] = useState<string | null>(null)
 
   const {
     data: allTransfers = [],
@@ -44,11 +42,9 @@ export default function TransferHistoryPage() {
     error: queryError,
     refetch: loadData,
   } = useMyTransfers()
-  const cancelTransfer = useCancelTransfer()
 
   const error = queryError ? 'Impossible de charger l\'historique des transferts.' : null
   const refreshing = isFetching && !loading
-  const cancelling = cancelTransfer.isPending
 
   const {
     data: statistics,
@@ -111,19 +107,6 @@ export default function TransferHistoryPage() {
 
   const handleRefresh = () => {
     loadData()
-  }
-
-  const handleCancel = async () => {
-    if (!cancelTargetId || !user) return
-
-    setCancelError(null)
-
-    try {
-      await cancelTransfer.mutateAsync(cancelTargetId)
-      setCancelTargetId(null)
-    } catch (err) {
-      setCancelError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'annulation.')
-    }
   }
 
   if (loading || statsLoading) {
@@ -277,55 +260,15 @@ export default function TransferHistoryPage() {
                     </div>
 
                     <button
-                      onClick={() => navigate(`/agent/transfers/${transfer.id}`)}
+                      onClick={() => navigate(`/agent/transfers/${transfer.id}`, { state: { from: '/agent/transfers/history' } })}
                       className="history-details-button"
                     >
                       Voir les détails
                     </button>
-
-                    {user && transfer.originAgentId === user.id && transfer.status === TransferStatus.CREATED && (
-                      <button
-                        onClick={() => setCancelTargetId(transfer.id)}
-                        className="history-cancel-button"
-                        type="button"
-                      >
-                        Annuler
-                      </button>
-                    )}
                   </div>
               </div>
             )
           })}
-        </div>
-      )}
-      {cancelTargetId && (
-        <div className="history-cancel-modal-overlay">
-          <div className="history-cancel-modal">
-            <h2>Annuler le transfert</h2>
-            <p>Vous êtes sur le point d'annuler ce transfert. Cette opération est définitive.</p>
-            {cancelError && (
-              <p className="history-cancel-error">{cancelError}</p>
-            )}
-            <div className="history-cancel-actions">
-              <button
-                onClick={() => {
-                  setCancelTargetId(null)
-                  setCancelError(null)
-                }}
-                className="history-cancel-button-secondary"
-                disabled={cancelling}
-              >
-                Retour
-              </button>
-              <button
-                onClick={handleCancel}
-                className="history-cancel-button-danger"
-                disabled={cancelling}
-              >
-                {cancelling ? 'Annulation...' : 'Confirmer l\'annulation'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

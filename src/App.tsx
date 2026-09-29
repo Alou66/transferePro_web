@@ -23,6 +23,7 @@ const AdminTransfersPage = lazy(() => import('./features/admin/pages/AdminTransf
 const AdminTransferDetailsPage = lazy(() => import('./features/admin/pages/AdminTransferDetailsPage'))
 const AdminFinancialStatisticsPage = lazy(() => import('./features/admin/pages/AdminFinancialStatisticsPage'))
 const CreateTransferPage = lazy(() => import('./features/transfers/pages/CreateTransferPage'))
+const EditTransferPage = lazy(() => import('./features/transfers/pages/EditTransferPage'))
 const TransferCreatedPage = lazy(() => import('./features/transfers/pages/TransferCreatedPage'))
 const IncomingTransfersPage = lazy(() => import('./features/transfers/pages/IncomingTransfersPage'))
 const TransferDetailsPage = lazy(() => import('./features/transfers/pages/TransferDetailsPage'))
@@ -56,6 +57,7 @@ function App() {
             <Route path="transfers/incoming" element={<IncomingTransfersPage />} />
             <Route path="transfers/history" element={<TransferHistoryPage />} />
             <Route path="transfers/:transferId" element={<TransferDetailsPage />} />
+            <Route path="transfers/:transferId/edit" element={<EditTransferPage />} />
             <Route path="transfers/:transferId/verify" element={<VerifyWithdrawalCodePage />} />
             <Route path="transfers/:transferId/payment-success" element={<PaymentSuccessPage />} />
             <Route path="transfers/:transferId/success" element={<TransferCreatedPage />} />

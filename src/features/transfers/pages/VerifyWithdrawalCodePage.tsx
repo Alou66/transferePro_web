@@ -50,7 +50,7 @@ export default function VerifyWithdrawalCodePage() {
       setSuccess(true)
       setTimeout(() => {
         if (transferId) {
-          navigate(`/agent/transfers/${transferId}`)
+          navigate(`/agent/transfers/${transferId}`, { state: { from: '/agent/transfers/incoming' } })
         }
       }, 1500)
     } catch (err) {

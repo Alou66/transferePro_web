@@ -92,6 +92,17 @@ export interface CreateTransferInput {
   amount: number
 }
 
+// Mise à jour partielle : un champ omis conserve sa valeur en base.
+// Un champ téléphone explicitement vide efface le numéro.
+export interface UpdateTransferInput {
+  senderName?: string
+  senderPhone?: string | null
+  recipientName?: string
+  recipientPhone?: string | null
+  destinationCityId?: string
+  amount?: number
+}
+
 export interface PaginatedResponse<T> {
   items: T[]
   pagination: {

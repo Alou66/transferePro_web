@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { transferService } from '../services/transferService'
-import type { CreateTransferInput, TransferStatus } from '../../../types/index'
+import type { CreateTransferInput, UpdateTransferInput, TransferStatus } from '../../../types/index'
 import { agentKeys } from '../../agents/hooks/useAgents'
 
 // Les transferts changent en permanence (création, paiement, annulation) :
@@ -13,8 +13,8 @@ export const transferKeys = {
   list: (page: number, limit: number) => [...transferKeys.all, 'list', page, limit] as const,
   allExhaustive: () => [...transferKeys.all, 'all-exhaustive'] as const,
   myAll: () => [...transferKeys.all, 'my-all'] as const,
-  incoming: (page: number, limit: number, statuses?: TransferStatus[]) =>
-    [...transferKeys.all, 'incoming', page, limit, statuses ?? []] as const,
+  incoming: (page: number, limit: number, statuses?: TransferStatus[], search?: string) =>
+    [...transferKeys.all, 'incoming', page, limit, statuses ?? [], search ?? ''] as const,
   detail: (id: string) => [...transferKeys.all, 'detail', id] as const,
   withdrawalCode: (id: string) => [...transferKeys.all, 'withdrawal-code', id] as const,
 }
@@ -43,10 +43,13 @@ export function useMyTransfers() {
   })
 }
 
-export function useIncomingTransfers(page = 1, limit = 20, statuses?: TransferStatus[]) {
+export function useIncomingTransfers(page = 1, limit = 20, statuses?: TransferStatus[], search?: string) {
   return useQuery({
-    queryKey: transferKeys.incoming(page, limit, statuses),
-    queryFn: () => transferService.getIncomingForAgent(page, limit, statuses),
+    queryKey: transferKeys.incoming(page, limit, statuses, search),
+    queryFn: () => transferService.getIncomingForAgent(page, limit, statuses, search),
+    // Garde l'aperçu précédent affiché pendant la frappe suivante : évite que
+    // la liste disparaisse à chaque caractère saisi.
+    placeholderData: (previous) => previous,
     staleTime: TRANSFERS_STALE_TIME,
   })
 }
@@ -113,6 +116,21 @@ export function useCreateTransfer() {
     onSuccess: (transfer) => {
       // Évite un GET immédiat sur TransferCreatedPage : la réponse de
       // création contient déjà le transfert complet (dont le code de retrait).
+      queryClient.setQueryData(transferKeys.detail(transfer.id), transfer)
+      invalidate(transfer.id)
+    },
+  })
+}
+
+export function useUpdateTransfer() {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateTransfers()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateTransferInput }) => transferService.update(id, input),
+    onSuccess: (transfer) => {
+      // La réponse fait autorité : on l'écrit dans le cache du détail pour que
+      // l'écran affiche immédiatement les nouvelles informations, sans GET
+      // concurrent capable de les écraser.
       queryClient.setQueryData(transferKeys.detail(transfer.id), transfer)
       invalidate(transfer.id)
     },

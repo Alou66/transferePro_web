@@ -1,10 +1,12 @@
 import {
   get,
   post,
+  put,
 } from '../../../services/api'
 import type {
   Transfer,
   CreateTransferInput,
+  UpdateTransferInput,
   PaginatedResponse,
 } from '../../../types/index'
 import { TransferStatus } from '../../../types/index'
@@ -51,9 +53,15 @@ export const transferService = {
     page = 1,
     limit = 20,
     statuses?: TransferStatus[],
+    search?: string,
   ): Promise<PaginatedResponse<Transfer>> {
-    const statusParam = statuses?.length ? `&status=${statuses.join(',')}` : ''
-    return get<PaginatedResponse<Transfer>>(`/transfers/incoming?page=${page}&limit=${limit}${statusParam}`)
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+    if (statuses?.length) params.set('status', statuses.join(','))
+    // searchTrimmed : une saisie uniquement composée d'espaces équivaut à
+    // aucune recherche, sinon on enverrait un filtre vide inutile.
+    const term = search?.trim()
+    if (term) params.set('search', term)
+    return get<PaginatedResponse<Transfer>>(`/transfers/incoming?${params.toString()}`)
   },
 
   // Utilisé uniquement pour des calculs (solde agent, historique complet) :
@@ -70,6 +78,10 @@ export const transferService = {
 
   async create(input: CreateTransferInput): Promise<Transfer> {
     return post<Transfer>('/transfers', input)
+  },
+
+  async update(id: string, input: UpdateTransferInput): Promise<Transfer> {
+    return put<Transfer>('/transfers', id, input)
   },
 
   async cancel(id: string): Promise<{ id: string; reference: string; status: TransferStatus; message: string }> {
