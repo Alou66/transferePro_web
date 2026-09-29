@@ -85,9 +85,9 @@ export interface LoginInput {
 
 export interface CreateTransferInput {
   senderName: string
-  senderPhone: string
+  senderPhone?: string | null
   recipientName: string
-  recipientPhone: string
+  recipientPhone?: string | null
   destinationCityId: string
   amount: number
 }

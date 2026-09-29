@@ -148,13 +148,13 @@ export default function TransferDetailsPage() {
           <div className="transfer-details-section">
             <h2>Expéditeur</h2>
             <p><strong>Nom :</strong> {transfer.senderName}</p>
-            <p><strong>Téléphone :</strong> {transfer.senderPhone}</p>
+            <p><strong>Téléphone :</strong> {transfer.senderPhone || 'Non renseigné'}</p>
           </div>
 
           <div className="transfer-details-section">
             <h2>Bénéficiaire</h2>
             <p><strong>Nom :</strong> {transfer.recipientName}</p>
-            <p><strong>Téléphone :</strong> {transfer.recipientPhone}</p>
+            <p><strong>Téléphone :</strong> {transfer.recipientPhone || 'Non renseigné'}</p>
           </div>
 
           <div className="transfer-details-section">

@@ -34,9 +34,7 @@ export default function CreateTransferPage() {
 
   const isFormValid =
     senderName.trim().length >= 2 &&
-    senderPhone.trim().length >= 2 &&
     recipientName.trim().length >= 2 &&
-    recipientPhone.trim().length >= 2 &&
     hasValidAmount &&
     destinationCityId !== ''
 
@@ -116,14 +114,12 @@ export default function CreateTransferPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="senderPhone">Téléphone de l'expéditeur</label>
+              <label htmlFor="senderPhone">Téléphone de l'expéditeur (optionnel)</label>
               <input
                 id="senderPhone"
                 type="tel"
                 value={senderPhone}
                 onChange={(e) => setSenderPhone(e.target.value)}
-                required
-                minLength={2}
                 placeholder="77 123 45 67"
               />
             </div>
@@ -144,14 +140,12 @@ export default function CreateTransferPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="recipientPhone">Téléphone du bénéficiaire</label>
+              <label htmlFor="recipientPhone">Téléphone du bénéficiaire (optionnel)</label>
               <input
                 id="recipientPhone"
                 type="tel"
                 value={recipientPhone}
                 onChange={(e) => setRecipientPhone(e.target.value)}
-                required
-                minLength={2}
                 placeholder="620 123 456"
               />
             </div>

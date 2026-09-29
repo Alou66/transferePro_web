@@ -142,7 +142,7 @@ export default function AdminTransferDetailsPage() {
             </div>
             <div>
               <span className="admin-transfer-details-label">Téléphone</span>
-              <p className="admin-transfer-details-value">{transfer.senderPhone}</p>
+              <p className="admin-transfer-details-value">{transfer.senderPhone || 'Non renseigné'}</p>
             </div>
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function AdminTransferDetailsPage() {
             </div>
             <div>
               <span className="admin-transfer-details-label">Téléphone</span>
-              <p className="admin-transfer-details-value">{transfer.recipientPhone}</p>
+              <p className="admin-transfer-details-value">{transfer.recipientPhone || 'Non renseigné'}</p>
             </div>
           </div>
         </div>
