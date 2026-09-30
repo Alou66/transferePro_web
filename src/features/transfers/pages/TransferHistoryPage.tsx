@@ -10,18 +10,22 @@ import { formatCurrency } from '../../../shared/utils/formatCurrency'
 import { formatDate } from '../../../shared/utils/formatDate'
 import './TransferHistoryPage.css'
 
-type TransferType = 'ALL' | 'SENT' | 'INCOMING' | 'PAID'
+type TransferRole = 'SENT' | 'TO_PAY' | 'PAID'
 type StatusFilter = 'ALL' | TransferStatus
 
-const TRANSFER_TYPE_LABELS: Record<TransferType, string> = {
-  ALL: 'Tous',
-  SENT: 'Envoyés',
-  INCOMING: 'Entrants',
-  PAID: 'Payés',
+// Rôle de l'agent dans le transfert. Ce n'est plus un filtre : la page ne
+// propose que le statut et la recherche. Le rôle reste affiché sur le badge de
+// chaque carte, où il renseigne l'agent sur le sens de l'argent pour ce
+// transfert (il encaisse, il doit verser, il a versé).
+const ROLE_BADGE_LABELS: Record<TransferRole, string> = {
+  SENT: "J'ai envoyé",
+  TO_PAY: 'À me verser',
+  PAID: "J'ai versé",
 }
 
-const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'ALL', label: 'Tous les statuts' },
+// « Statut du transfert » répond à : où en est le cycle de vie de ce transfert ?
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: 'ALL', label: 'Tous' },
   { value: TransferStatus.CREATED, label: 'Créé' },
   { value: TransferStatus.READY_FOR_PAYMENT, label: 'Prêt au paiement' },
   { value: TransferStatus.PAID, label: 'Payé' },
@@ -31,7 +35,6 @@ const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 export default function TransferHistoryPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [typeFilter, setTypeFilter] = useState<TransferType>('ALL')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [search, setSearch] = useState('')
 
@@ -53,25 +56,21 @@ export default function TransferHistoryPage() {
     refetch: refetchStatistics,
   } = useAgentStatistics(user?.id)
 
-  const getTransferType = useCallback((transfer: Transfer): TransferType => {
-    if (transfer.paidByAgentId === user?.id && transfer.status === TransferStatus.PAID) {
-      return 'PAID'
-    }
-    if (transfer.destinationAgentId === user?.id) {
-      return 'INCOMING'
-    }
-    if (transfer.originAgentId === user?.id) {
+  const getTransferRole = useCallback(
+    (transfer: Transfer): TransferRole => {
+      if (transfer.paidByAgentId === user?.id && transfer.status === TransferStatus.PAID) {
+        return 'PAID'
+      }
+      if (transfer.destinationAgentId === user?.id) {
+        return 'TO_PAY'
+      }
       return 'SENT'
-    }
-    return 'SENT'
-  }, [user?.id])
+    },
+    [user?.id],
+  )
 
   const filteredTransfers = useMemo(() => {
     let result = allTransfers
-
-    if (typeFilter !== 'ALL') {
-      result = result.filter((t) => getTransferType(t) === typeFilter)
-    }
 
     if (statusFilter !== 'ALL') {
       result = result.filter((t) => t.status === statusFilter)
@@ -89,24 +88,17 @@ export default function TransferHistoryPage() {
     }
 
     return result
-  }, [allTransfers, typeFilter, statusFilter, search, getTransferType])
+  }, [allTransfers, statusFilter, search])
 
-  const stats = useMemo(() => {
-    if (!user) {
-      return { total: 0, sent: 0, paid: 0 }
-    }
-    const sent = allTransfers.filter((t) => t.originAgentId === user.id)
-    const paid = allTransfers.filter((t) => t.paidByAgentId === user.id && t.status === TransferStatus.PAID)
-
-    return {
-      total: allTransfers.length,
-      sent: sent.length,
-      paid: paid.length,
-    }
-  }, [allTransfers, user])
+  const isFiltering = statusFilter !== 'ALL' || search.trim() !== ''
 
   const handleRefresh = () => {
     loadData()
+  }
+
+  const handleResetFilters = () => {
+    setStatusFilter('ALL')
+    setSearch('')
   }
 
   if (loading || statsLoading) {
@@ -151,7 +143,7 @@ export default function TransferHistoryPage() {
         <div>
           <h1>Historique des transferts</h1>
           <p className="history-subtitle">
-            {stats.total} transfert{stats.total !== 1 ? 's' : ''} au total
+            {allTransfers.length} transfert{allTransfers.length !== 1 ? 's' : ''} au total
           </p>
         </div>
         <button
@@ -163,58 +155,52 @@ export default function TransferHistoryPage() {
         </button>
       </div>
 
-      <div className="history-stats">
-        <div className="history-stat-card">
-          <span className="history-stat-value">{stats.total}</span>
-          <span className="history-stat-label">Total</span>
-        </div>
-        <div className="history-stat-card">
-          <span className="history-stat-value">{stats.sent}</span>
-          <span className="history-stat-label">Envoyés</span>
-        </div>
-        <div className="history-stat-card">
-          <span className="history-stat-value">{stats.paid}</span>
-          <span className="history-stat-label">Payés</span>
-        </div>
-        <div className="history-stat-card">
-          <span className="history-stat-value">{formatCurrency(statistics?.financial.totalCreated ?? 0)}</span>
-          <span className="history-stat-label">Montant total encaissé</span>
-        </div>
+      <div className="history-summary">
+        <span className="history-summary-label">Montant total encaissé</span>
+        <span className="history-summary-value">
+          {formatCurrency(statistics?.financial.totalCreated ?? 0)}
+        </span>
       </div>
 
       <div className="history-filters">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher un nom, une référence ou un téléphone"
+          aria-label="Rechercher un transfert"
+          className="history-search"
+        />
+
         <div className="history-filter-group">
-          {Object.entries(TRANSFER_TYPE_LABELS).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setTypeFilter(key as TransferType)}
-              className={`history-filter-button ${typeFilter === key ? 'active' : ''}`}
-            >
-              {label}
-            </button>
-          ))}
+          <span className="history-filter-label" id="history-status-label">
+            Statut du transfert
+          </span>
+          <div className="history-filter-buttons" role="group" aria-labelledby="history-status-label">
+            {STATUS_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setStatusFilter(filter.value)}
+                className={`history-filter-button ${statusFilter === filter.value ? 'active' : ''}`}
+                aria-pressed={statusFilter === filter.value}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="history-filter-row">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="history-select"
-          >
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher..."
-            className="history-search"
-          />
+        <div className="history-results-bar">
+          <p className="history-result-count">
+            {isFiltering
+              ? `${filteredTransfers.length} transfert${filteredTransfers.length !== 1 ? 's' : ''} sur ${allTransfers.length}`
+              : `${allTransfers.length} transfert${allTransfers.length !== 1 ? 's' : ''}`}
+          </p>
+          {isFiltering && (
+            <button onClick={handleResetFilters} className="history-reset-button" type="button">
+              Réinitialiser les filtres
+            </button>
+          )}
         </div>
       </div>
 
@@ -223,13 +209,18 @@ export default function TransferHistoryPage() {
           <p>
             {allTransfers.length === 0
               ? 'Aucun transfert dans votre historique.'
-              : 'Aucun transfert ne correspond à votre recherche.'}
+              : 'Aucun transfert ne correspond à ces filtres.'}
           </p>
+          {allTransfers.length > 0 && (
+            <button onClick={handleResetFilters} className="history-reset-button" type="button">
+              Réinitialiser les filtres
+            </button>
+          )}
         </div>
       ) : (
         <div className="history-list">
           {filteredTransfers.map((transfer) => {
-            const typeLabel = TRANSFER_TYPE_LABELS[getTransferType(transfer)]
+            const role = getTransferRole(transfer)
             return (
               <div key={transfer.id} className="history-card">
                 <div className="history-card-header">
@@ -238,7 +229,7 @@ export default function TransferHistoryPage() {
                 </div>
 
                   <div className="history-card-body">
-                    <div className="history-type-badge">{typeLabel}</div>
+                    <div className="history-type-badge">{ROLE_BADGE_LABELS[role]}</div>
 
                     <div className="history-section">
                       <span className="history-section-label">Trajet</span>
