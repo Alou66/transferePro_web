@@ -22,6 +22,7 @@ const AdminDashboardPage = lazy(() => import('./features/admin/pages/AdminDashbo
 const AdminTransfersPage = lazy(() => import('./features/admin/pages/AdminTransfersPage'))
 const AdminTransferDetailsPage = lazy(() => import('./features/admin/pages/AdminTransferDetailsPage'))
 const AdminFinancialStatisticsPage = lazy(() => import('./features/admin/pages/AdminFinancialStatisticsPage'))
+const AdminMaintenancePage = lazy(() => import('./features/admin/pages/AdminMaintenancePage'))
 const CreateTransferPage = lazy(() => import('./features/transfers/pages/CreateTransferPage'))
 const EditTransferPage = lazy(() => import('./features/transfers/pages/EditTransferPage'))
 const TransferCreatedPage = lazy(() => import('./features/transfers/pages/TransferCreatedPage'))
@@ -79,6 +80,7 @@ function App() {
             <Route path="transfers" element={<AdminTransfersPage />} />
             <Route path="transfers/:transferId" element={<AdminTransferDetailsPage />} />
             <Route path="financial-statistics" element={<AdminFinancialStatisticsPage />} />
+            <Route path="maintenance" element={<AdminMaintenancePage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

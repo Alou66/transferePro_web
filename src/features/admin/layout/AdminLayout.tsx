@@ -55,6 +55,9 @@ export default function AdminLayout() {
             <NavLink to="/admin/financial-statistics" className="layout-nav-link" onClick={handleNavClick}>
               Statistiques financières
             </NavLink>
+            <NavLink to="/admin/maintenance" className="layout-nav-link" onClick={handleNavClick}>
+              Maintenance
+            </NavLink>
 
             <div className="layout-nav-user">
               <span className="layout-nav-user-name">
